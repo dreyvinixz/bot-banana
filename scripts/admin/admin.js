@@ -163,18 +163,18 @@ async function handleSetupRegrasCommand(message) {
     const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
     const path = require("path");
     
-    // Anexando as imagens da raiz
-    const img1Path = path.join(process.cwd(), "image.png");
-    const img2Path = path.join(process.cwd(), "image copy.png");
+    // Anexando as imagens da pasta assets
+    const img1Path = path.join(process.cwd(), "assets", "regras_banner1.png");
+    const img2Path = path.join(process.cwd(), "assets", "regras_banner2.png");
     
     // Pode ocorrer que as imagens não existam durante a execução, criamos um fallback
     let files = [];
     const fs = require("fs");
     if (fs.existsSync(img1Path)) {
-      files.push(new AttachmentBuilder(img1Path, { name: "image.png" }));
+      files.push(new AttachmentBuilder(img1Path, { name: "regras_banner1.png" }));
     }
     if (fs.existsSync(img2Path)) {
-      files.push(new AttachmentBuilder(img2Path, { name: "image_copy.png" }));
+      files.push(new AttachmentBuilder(img2Path, { name: "regras_banner2.png" }));
     }
 
     const embed1 = new EmbedBuilder()
@@ -207,19 +207,16 @@ async function handleSetupRegrasCommand(message) {
       .setTitle("📌 Regra mais importante")
       .setDescription("> **As regras não existem para controlar cada palavra que você fala. Elas existem para impedir que alguém transforme a experiência dos outros em algo ruim.**\n\n🎭 **O Caberé é uma comunidade de amigos, jogos, resenha e diversão.**\n\nA moderação não está aqui para punir cada brincadeira ou discussão. Estamos aqui para garantir que todos possam aproveitar o servidor.\n\n**Seja uma pessoa razoável, respeite os limites dos outros e use o bom senso.**\n\nSe você errar, converse com a equipe. Se você insistir em prejudicar a comunidade, a moderação irá agir.");
 
-    // Se houver as imagens envia com a imagem, se quiser colocar em embeds específicos pode ajustar
-    if (files.length > 0) {
-      embed6.setImage(`attachment://${files[0].name}`);
-    }
-    if (files.length > 1) {
-      embed1.setImage(`attachment://${files[1].name}`);
-    }
-
     const text1 = "# 🎭 Manual de Convivência do Caberé";
 
     await channel.send({ content: text1, embeds: [embed1] });
     await channel.send({ embeds: [embed2, embed3, embed4] });
-    await channel.send({ embeds: [embed5, embed6], files: files });
+    await channel.send({ embeds: [embed5, embed6] });
+    
+    // Envia as imagens por último
+    if (files.length > 0) {
+      await channel.send({ files: files });
+    }
     
     await message.reply("✅ Canal de regras configurado com o novo formato do Caberé!");
   } catch (error) {

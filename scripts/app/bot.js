@@ -460,6 +460,60 @@ function start(options = {}) {
         return;
       }
 
+      if (interaction.isChatInputCommand()) {
+        const { commandName } = interaction;
+        
+        // Simular um objeto message básico para reaproveitar funções existentes
+        const mockMessage = {
+          client: interaction.client,
+          author: interaction.user,
+          guild: interaction.guild,
+          channel: interaction.channel,
+          reply: async (content) => {
+            if (interaction.replied || interaction.deferred) {
+              return interaction.followUp(content);
+            }
+            return interaction.reply(content);
+          },
+          channelId: interaction.channelId,
+          content: `!${commandName}`
+        };
+
+        if (commandName === 'ajuda') {
+          return interaction.reply({ embeds: [buildHelpEmbed()] });
+        }
+        
+        if (commandName === 'setup_regras') {
+          const { handleSetupRegrasCommand } = require("../admin/admin");
+          return handleSetupRegrasCommand(mockMessage);
+        }
+
+        if (commandName === 'saldo') {
+          const { getCoins, getTopPlayers, formatCoins } = require("../economy/economy");
+          const coins = getCoins(interaction.user.id);
+          const topPlayers = getTopPlayers(100);
+          const myRank = topPlayers.findIndex(p => p.id === interaction.user.id) + 1;
+          const rankStr = myRank > 0 ? `#${myRank}` : 'Não rankeado';
+
+          const embed = new EmbedBuilder()
+            .setColor('#000000')
+            .setTitle('💳 BANCO NANACOIN')
+            .setDescription(`Extrato bancário de **${interaction.user.username}**`)
+            .addFields(
+              { name: '💵 Saldo Disponível', value: `\`🪙 ${formatCoins(coins)} Nanacoins\``, inline: true },
+              { name: '🏆 Posição no Rank', value: `\`${rankStr}\``, inline: true }
+            )
+            .setFooter({ text: 'Dica: Use a loja para gastar ou roubar para tentar a sorte.' });
+
+          return interaction.reply({ embeds: [embed] });
+        }
+        
+        if (commandName === 'diario') {
+          const { handleDailyCommand } = require("../economy/inventory");
+          return handleDailyCommand(mockMessage);
+        }
+      }
+
       if (await handleEventInteraction(interaction)) return;
       if (await handleForcaThemeInteraction(interaction)) return;
       
