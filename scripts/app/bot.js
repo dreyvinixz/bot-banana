@@ -27,6 +27,7 @@ const { checkAndSendTip } = require("../features/tips");
 const { handleReelsCommand, handleReelsInteraction } = require("../features/reels");
 const { handleAdminCommand } = require("../admin/admin");
 const { startVideoScheduler } = require("../core/videoScheduler");
+const { handleFaqMessage } = require("../features/faq");
 
 function createClient() {
   return new Client({
@@ -225,6 +226,11 @@ async function handleClearCommand(message, text) {
 async function handleMessage(message) {
   if (message.author.bot) return;
   if (!message.guild) return;
+
+  if (message.channel.name && message.channel.name.includes("perguntas")) {
+    const answered = await handleFaqMessage(message);
+    if (answered) return; // Se for FAQ, ele para aqui
+  }
 
   coletarGifs(message);
   cachearMensagem(message);
@@ -451,6 +457,7 @@ function start(options = {}) {
       console.error("🔥 Erro inesperado no messageCreate:", err);
     });
   });
+
   client.on("interactionCreate", async (interaction) => {
     try {
       if (testMode && interaction.channelId !== testChannelId) {
@@ -486,6 +493,26 @@ function start(options = {}) {
         if (commandName === 'setup_regras') {
           const { handleSetupRegrasCommand } = require("../admin/admin");
           return handleSetupRegrasCommand(mockMessage);
+        }
+
+        if (commandName === 'setup_cargos_info') {
+          const { handleSetupCargosInfoCommand } = require("../admin/admin");
+          return handleSetupCargosInfoCommand(mockMessage);
+        }
+
+        if (commandName === 'setup_avisos') {
+          const { handleSetupAvisosCommand } = require("../admin/admin");
+          return handleSetupAvisosCommand(mockMessage);
+        }
+
+        if (commandName === 'setup_caixa_info') {
+          const { handleSetupCaixaInfoCommand } = require("../admin/admin");
+          return handleSetupCaixaInfoCommand(mockMessage);
+        }
+
+        if (commandName === 'setup_cabere') {
+          const { handleSetupCabereCommand } = require("../admin/setup_server");
+          return handleSetupCabereCommand(interaction);
         }
 
         if (commandName === 'saldo') {

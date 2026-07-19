@@ -16,7 +16,19 @@ const commands = [
     .setDescription("Resgate sua recompensa diária!"),
   new SlashCommandBuilder()
     .setName("setup_regras")
-    .setDescription("[SuperAdmin] Configura o canal de regras do servidor Caberé")
+    .setDescription("[Admin] Configura as regras do Caberé em um canal."),
+  new SlashCommandBuilder()
+    .setName("setup_cargos_info")
+    .setDescription("[Admin] Configura o painel informativo de cargos."),
+  new SlashCommandBuilder()
+    .setName("setup_avisos")
+    .setDescription("[Admin] Configura o painel informativo de avisos."),
+  new SlashCommandBuilder()
+    .setName("setup_caixa_info")
+    .setDescription("[Admin] Configura o painel informativo da caixa do servidor."),
+  new SlashCommandBuilder()
+    .setName("setup_cabere")
+    .setDescription("[SuperAdmin] Cria a estrutura completa de canais e categorias do servidor")
 ];
 
 const rest = new REST({ version: "10" }).setToken(config.DISCORD_TOKEN);

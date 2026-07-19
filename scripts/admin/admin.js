@@ -1,4 +1,5 @@
 const config = require("../core/config");
+const { EmbedBuilder } = require("discord.js");
 
 function isSuperAdmin(userId) {
   return config.SUPERADMIN_IDS.includes(String(userId));
@@ -240,11 +241,182 @@ async function handleAdminCommand(message) {
   if (command.startsWith("!setup_regras")) {
     return handleSetupRegrasCommand(message);
   }
+  if (command.startsWith("!setup_cargos_info")) {
+    return handleSetupCargosInfoCommand(message);
+  }
+  if (command.startsWith("!setup_avisos")) {
+    return handleSetupAvisosCommand(message);
+  }
+  if (command.startsWith("!setup_caixa_info")) {
+    return handleSetupCaixaInfoCommand(message);
+  }
   return false;
+}
+
+async function handleSetupCaixaInfoCommand(interactionOrMessage) {
+  const isMessage = !!interactionOrMessage.content;
+  const guild = interactionOrMessage.guild;
+  const channel = guild.channels.cache.find(c => c.name.includes("nanacoins"));
+
+  if (!channel) {
+    const errorMsg = "❌ Canal 'nanacoins' não encontrado!";
+    return isMessage ? interactionOrMessage.reply(errorMsg) : interactionOrMessage.editReply(errorMsg);
+  }
+
+  try {
+    const embedCaixa = new EmbedBuilder()
+      .setColor("#FFD700")
+      .setTitle("💰 Bem-vindo à Caixa do Caberé!")
+      .setDescription("Esta categoria é o coração financeiro e de entretenimento do servidor. Entenda para que serve cada canal:")
+      .addFields(
+        { name: "💰┃nanacoins", value: "Use este canal para os comandos básicos da sua conta bancária. Pegue seu `!diario`, veja seu `!saldo`, transfira moedas e acesse a bolsa de valores (`!bolsa`)." },
+        { name: "🏆┃placar", value: "O Hall da Fama! Canal dedicado para você acompanhar o ranking (`!rank`) e ver quem são os verdadeiros milionários do servidor." },
+        { name: "🎮┃arcade", value: "O salão de jogos! Hub central de diversão (`!games`). Venha aqui para jogar Forca, Duelo, apostar na sorte com `!beijarmuro` ou tentar `!roubar` os outros (cuidado com a prisão!)." }
+      )
+      .setFooter({ text: "Dica: Tente não ir para a cadeia logo no primeiro dia!" })
+      .setThumbnail(guild.iconURL({ dynamic: true }) || null);
+
+    await channel.send({ 
+      content: "# 🎰 Economia e Jogos do Caberé\nLeia abaixo para entender como usar a categoria Caixa do Caberé!", 
+      embeds: [embedCaixa] 
+    });
+
+    const successMsg = "✅ Informações da Caixa enviadas para o canal!";
+    if (isMessage) {
+      await interactionOrMessage.reply(successMsg);
+    } else {
+      await interactionOrMessage.editReply(successMsg);
+    }
+  } catch (error) {
+    console.error(error);
+    const errorMsg = "❌ Erro ao configurar canal da Caixa.";
+    if (isMessage) {
+      await interactionOrMessage.reply(errorMsg);
+    } else {
+      await interactionOrMessage.editReply(errorMsg);
+    }
+  }
+}
+
+async function handleSetupAvisosCommand(interactionOrMessage) {
+  const isMessage = !!interactionOrMessage.content;
+  const guild = interactionOrMessage.guild;
+  const channel = guild.channels.cache.find(c => c.name.includes("avisos"));
+
+  if (!channel) {
+    const errorMsg = "❌ Canal de avisos não encontrado!";
+    return isMessage ? interactionOrMessage.reply(errorMsg) : interactionOrMessage.editReply(errorMsg);
+  }
+
+  try {
+    const embedAvisos = new EmbedBuilder()
+      .setColor("#FFD700")
+      .setTitle("📢 Fique por dentro de tudo!")
+      .setDescription("Este é o **Canal Oficial de Avisos** do Caberé.\n\nAqui a Equipe vai postar todas as novidades importantes para a comunidade. Sugerimos que você deixe as notificações deste canal ativadas!")
+      .addFields(
+        { name: "O que será postado aqui?", value: "• 🆕 Atualizações do Servidor\n• 🤖 Novos comandos e funções do BotBanana\n• 🎉 Anúncio de Eventos e Competições\n• 🎁 Resultados de Sorteios\n• 🐉 Alertas de Invasões (Raids Globais)" },
+        { name: "Posso responder?", value: "Apenas membros da equipe podem enviar mensagens aqui para não virar bagunça, mas você pode reagir com emojis em todas as postagens!" }
+      )
+      .setFooter({ text: "Equipe Caberé - BotBanana" })
+      .setThumbnail(guild.iconURL({ dynamic: true }) || null);
+
+    await channel.send({ 
+      content: "# 📢 Central de Avisos Caberé", 
+      embeds: [embedAvisos] 
+    });
+
+    const successMsg = "✅ Informações de avisos enviadas para o canal!";
+    if (isMessage) {
+      await interactionOrMessage.reply(successMsg);
+    } else {
+      await interactionOrMessage.editReply(successMsg);
+    }
+  } catch (error) {
+    console.error(error);
+    const errorMsg = "❌ Erro ao configurar canal de avisos.";
+    if (isMessage) {
+      await interactionOrMessage.reply(errorMsg);
+    } else {
+      await interactionOrMessage.editReply(errorMsg);
+    }
+  }
+}
+
+async function handleSetupCargosInfoCommand(interactionOrMessage) {
+  const isMessage = !!interactionOrMessage.content;
+  const guild = interactionOrMessage.guild;
+  const channel = guild.channels.cache.get("1528288022909423797");
+
+  if (!channel) {
+    const errorMsg = "❌ Canal de cargos (1528288022909423797) não encontrado!";
+    return isMessage ? interactionOrMessage.reply(errorMsg) : interactionOrMessage.editReply(errorMsg);
+  }
+
+  try {
+    const embedConquistas = new EmbedBuilder()
+      .setColor("#ffaa00")
+      .setTitle("🏆 Cargos de Conquista")
+      .setDescription("Estes cargos mostram os seus maiores feitos no servidor e podem ser acumulados!")
+      .addFields(
+        { name: "🏆 Campeão da Bagaça", value: "Vencedor de eventos e competições do servidor." },
+        { name: "💎 Patrono da Baguga", value: "Apoiadores do servidor." },
+        { name: "🚀 Booster", value: "Membros que deram Boost (Impulso) no Discord e têm acesso aos Camarins." },
+        { name: "🗣️ Women Propaganda", value: "Maior divulgadora do servidor." },
+        { name: "💸 Milionário de Taubaté", value: "Ficou rico na economia do BotBanana (use `!saldo`)." },
+        { name: "🎁 Mão de Vaca", value: "Acumulador compulsivo de Nanacoins." },
+        { name: "📣 Vendedor de Convite", value: "Trouxe novos membros para o Caberé." }
+      );
+
+    const embedProgressao = new EmbedBuilder()
+      .setColor("#1e90ff")
+      .setTitle("📈 Cargos de Progressão (XP)")
+      .setDescription("Sua atividade no chat te faz subir de nível. Você só pode ter um desses cargos por vez! Quanto mais você conversa, mais alto chega na hierarquia.")
+      .addFields(
+        { name: "👑 Lenda da Resenha", value: "Nível Máximo - A maior lenda da comunidade!" },
+        { name: "🤡 Agente do Caos", value: "Nível 50 - Você já faz parte da mobília." },
+        { name: "💬 Já É de Casa", value: "Nível 25 - Conhece todo mundo." },
+        { name: "🪑 Sentou na Resenha", value: "Nível 10 - Acabou de se enturmar." },
+        { name: "🥚 Chegou Agora", value: "Nível 1 - Novato no Caberé." }
+      );
+
+    const embedEquipe = new EmbedBuilder()
+      .setColor("#ff0000")
+      .setTitle("🛡️ Equipe Caberé")
+      .setDescription("Responsáveis por manter a paz (ou o caos organizado) no servidor.")
+      .addFields(
+        { name: "👑 Rei do Cabaré", value: "Dono do servidor." },
+        { name: "🔨 Segurança de Vitrine", value: "Os moderadores que aplicam as regras." }
+      )
+      .setFooter({ text: "Use o canal de dúvidas caso precise de ajuda!" });
+
+    await channel.send({ 
+      content: "# 🎭 Painel de Cargos e Conquistas\nEntenda como funciona a hierarquia do nosso servidor e lute pelos seus cargos!", 
+      embeds: [embedProgressao, embedConquistas, embedEquipe] 
+    });
+
+    const successMsg = "✅ Informações de cargos enviadas para o canal!";
+    if (isMessage) {
+      await interactionOrMessage.reply(successMsg);
+    } else {
+      await interactionOrMessage.editReply(successMsg);
+    }
+  } catch (error) {
+    console.error(error);
+    const errorMsg = "❌ Erro ao configurar canal de cargos.";
+    if (isMessage) {
+      await interactionOrMessage.reply(errorMsg);
+    } else {
+      await interactionOrMessage.editReply(errorMsg);
+    }
+  }
 }
 
 module.exports = {
   isSuperAdmin,
   requireSuperAdmin,
-  handleAdminCommand
+  handleAdminCommand,
+  handleSetupRegrasCommand,
+  handleSetupCargosInfoCommand,
+  handleSetupAvisosCommand,
+  handleSetupCaixaInfoCommand
 };
