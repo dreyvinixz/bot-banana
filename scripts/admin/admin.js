@@ -144,6 +144,91 @@ async function handleEconAdminCommand(message) {
   return true;
 }
 
+async function handleSetupRegrasCommand(message) {
+  if (!(await requireSuperAdmin(message))) return true;
+
+  const channelId = "1348710840425250836";
+  const guildId = "1344557188617732137";
+  
+  try {
+    const guild = message.client.guilds.cache.get(guildId) || await message.client.guilds.fetch(guildId);
+    if (!guild) {
+      return message.reply("❌ Não encontrei o servidor especificado.");
+    }
+    const channel = guild.channels.cache.get(channelId) || await guild.channels.fetch(channelId);
+    if (!channel) {
+      return message.reply("❌ Não encontrei o canal de regras.");
+    }
+
+    const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
+    const path = require("path");
+    
+    // Anexando as imagens da raiz
+    const img1Path = path.join(process.cwd(), "image.png");
+    const img2Path = path.join(process.cwd(), "image copy.png");
+    
+    // Pode ocorrer que as imagens não existam durante a execução, criamos um fallback
+    let files = [];
+    const fs = require("fs");
+    if (fs.existsSync(img1Path)) {
+      files.push(new AttachmentBuilder(img1Path, { name: "image.png" }));
+    }
+    if (fs.existsSync(img2Path)) {
+      files.push(new AttachmentBuilder(img2Path, { name: "image_copy.png" }));
+    }
+
+    const embed1 = new EmbedBuilder()
+      .setColor("#2b2d31")
+      .setTitle("🎪 Resumo das regras")
+      .setDescription("● Respeite os outros membros, mesmo quando discordar.\n● Brincadeiras são permitidas, desde que todos estejam confortáveis.\n● Evite provocar, perseguir ou tentar iniciar brigas com outros membros.\n● Não faça spam, flood ou abuse de menções.\n● Não divulgue servidores, produtos ou links sem autorização.\n● Não use os bots para explorar bugs, prejudicar a economia ou atrapalhar outros membros.\n● Não compartilhe conteúdo ilegal, extremamente ofensivo ou que viole as regras do Discord.\n● Use o bom senso. Se você precisa perguntar \"será que isso vai dar problema?\", provavelmente é melhor perguntar antes a um moderador.\n\n> 🎭 **O objetivo do Caberé é simples: entrar, conversar, jogar, fazer resenha e se divertir.**");
+
+    const embed2 = new EmbedBuilder()
+      .setColor("#2b2d31")
+      .setTitle("⚪ Regras de convivência")
+      .setDescription("Estas regras representam o espírito do Caberé. Nem tudo precisa virar punição.\n\n**1. 🤝 Respeito**\nDiscordâncias e discussões fazem parte da comunidade. Ataques pessoais, humilhações e perseguições não.\n\n**2. 🎭 Brincadeiras**\nHumor e zoeira são bem-vindos. Porém, uma brincadeira deixa de ser divertida quando a outra pessoa pede para parar.\n\n**3. 🗣️ Discussões**\nDebater é permitido. Transformar qualquer assunto em uma guerra pessoal não.\n\n**4. 🧠 Bom senso**\nA moderação pode analisar o contexto. Uma mensagem isolada pode ser uma brincadeira; um comportamento repetitivo pode se tornar assédio.\n\n**5. 🛡️ Moderação**\nSe você não concordar com uma decisão, converse com a equipe de forma respeitosa. Discussões públicas intermináveis sobre punições podem acabar piorando a situação.");
+
+    const embed3 = new EmbedBuilder()
+      .setColor("#ffcc00")
+      .setTitle("🟡 Advertência")
+      .setDescription("Normalmente, problemas leves ou uma primeira ocorrência podem resultar em uma conversa ou advertência.\n\nExemplos:\n* spam leve;\n* flood;\n* discussões que saíram do controle;\n* brincadeiras que passaram um pouco do limite;\n* uso inadequado de algum canal;\n* divulgação sem autorização.\n\nA ideia é **corrigir o comportamento**, não punir automaticamente todo erro.");
+
+    const embed4 = new EmbedBuilder()
+      .setColor("#ff3333")
+      .setTitle("🔴 Strike")
+      .setDescription("Um strike pode ser aplicado em casos mais sérios ou quando o comportamento continua após uma advertência.\n\nExemplos:\n* insistir em provocar ou perseguir alguém;\n* assédio;\n* spam repetido;\n* tentar prejudicar deliberadamente a comunidade;\n* abuso de bugs ou sistemas do servidor;\n* divulgação repetida após ser avisado;\n* comportamento tóxico recorrente.\n\n### Sistema de strikes\n* **1 Strike:** registro da infração.\n* **2 Strikes:** a equipe pode aplicar uma punição mais severa.\n* **3 Strikes:** pode resultar em banimento.\n\n> ⚠️ A quantidade de strikes não é necessariamente automática. A equipe pode considerar a gravidade da situação e o histórico do membro.");
+
+    const embed5 = new EmbedBuilder()
+      .setColor("#000000")
+      .setTitle("💀 Banimento")
+      .setDescription("O banimento é reservado para situações graves, como:\n* ameaças reais;\n* doxxing ou exposição de informações pessoais;\n* conteúdo ilegal;\n* ataques discriminatórios graves;\n* tentativa de prejudicar deliberadamente o servidor;\n* contas criadas para trollar, assediar ou causar problemas;\n* golpes, phishing ou tentativas de roubo de contas;\n* reincidência grave após várias punições.");
+
+    const embed6 = new EmbedBuilder()
+      .setColor("#2b2d31")
+      .setTitle("📌 Regra mais importante")
+      .setDescription("> **As regras não existem para controlar cada palavra que você fala. Elas existem para impedir que alguém transforme a experiência dos outros em algo ruim.**\n\n🎭 **O Caberé é uma comunidade de amigos, jogos, resenha e diversão.**\n\nA moderação não está aqui para punir cada brincadeira ou discussão. Estamos aqui para garantir que todos possam aproveitar o servidor.\n\n**Seja uma pessoa razoável, respeite os limites dos outros e use o bom senso.**\n\nSe você errar, converse com a equipe. Se você insistir em prejudicar a comunidade, a moderação irá agir.");
+
+    // Se houver as imagens envia com a imagem, se quiser colocar em embeds específicos pode ajustar
+    if (files.length > 0) {
+      embed6.setImage(`attachment://${files[0].name}`);
+    }
+    if (files.length > 1) {
+      embed1.setImage(`attachment://${files[1].name}`);
+    }
+
+    const text1 = "# 🎭 Manual de Convivência do Caberé";
+
+    await channel.send({ content: text1, embeds: [embed1] });
+    await channel.send({ embeds: [embed2, embed3, embed4] });
+    await channel.send({ embeds: [embed5, embed6], files: files });
+    
+    await message.reply("✅ Canal de regras configurado com o novo formato do Caberé!");
+  } catch (error) {
+    console.error(error);
+    await message.reply("❌ Ocorreu um erro ao configurar o canal de regras.");
+  }
+  return true;
+}
+
 async function handleAdminCommand(message) {
   const command = message.content.trim().toLowerCase();
   if (command.startsWith("!spawn_boss") || command.startsWith("!spawnboss")) {
@@ -154,6 +239,9 @@ async function handleAdminCommand(message) {
   }
   if (command.startsWith("!econadmin resumo")) {
     return handleEconAdminCommand(message);
+  }
+  if (command.startsWith("!setup_regras")) {
+    return handleSetupRegrasCommand(message);
   }
   return false;
 }
