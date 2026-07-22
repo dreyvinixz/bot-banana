@@ -3,17 +3,9 @@ const config = require("../core/config");
 const { isCommand, getCommandText } = require("../core/utils");
 const { handleVoiceCommand } = require("../voice/voice");
 const { handleImageCommand } = require("../ai/image");
-const { 
-  isPerguntaMapasPathOfExile,
-  respostaMapasPathOfExile,
-  perguntarQuestion,
-  perguntarIaPrompt
-} = require("../ai/question");
 const {
   coletarGifs,
-  cachearMensagem,
-  maybeExtrairFofocas,
-  maybeResponderEspontaneo
+  cachearMensagem
 } = require("../ai/chat");
 const { handleForcaThemeInteraction, checkForcaGuess, checkAndSpawnEvent, handleEventInteraction } = require("../games/forca");
 const { getCoins, getTopPlayers, handleDoarCommand } = require("../economy/economy");
@@ -68,8 +60,6 @@ function buildHelpEmbed() {
         '`!games` - 🎰 Hub central de jogos: Forca, Trivia/RPG e Duelo!'
       ].join('\n') },
       { name: '🧠 IA & Utilidades', value: [
-        '`!nana <texto>` - 💬 Conversa com a IA no modo casual/persona.',
-        '`!question <texto>` - 🧠 Pergunta séria, resposta profissional.',
         '`!img <prompt>` - 🖼️ Gera imagem realista pelo Forge.',
         '`!anime <prompt>` - 🌸 Gera imagem em estilo anime pelo Forge.',
         '`!reels` - 🎬 Abre o painel para reel aleatório, link manual ou apagar o último reel do painel.',
@@ -124,53 +114,7 @@ async function sendChunkedReply(message, text) {
   }
 }
 
-async function handleTextCommand(message) {
-  const texto = getCommandText(message, ["!nana"]);
-  if (!texto) {
-    return message.reply("Digite uma pergunta: `!nana me explica isso aqui`");
-  }
 
-  try {
-    const prompt = `Responda em português do Brasil de forma direta, natural e curta.\n\n${texto}`;
-    const resposta = await perguntarIaPrompt(prompt, { logLabel: "Nana/IA" });
-
-    return sendChunkedReply(message, resposta);
-  } catch (err) {
-    console.log("🔥 Erro no comando de texto:", err.message);
-    return message.reply("⚠️ Erro ao contatar a IA.");
-  }
-}
-
-async function handleQuestionCommand(message) {
-  const texto = getCommandText(message, ["!question"]);
-  if (!texto) {
-    return message.reply("Digite a pergunta: `!question quais são os mapas de Path of Exile?`");
-  }
-
-  if (config.AI_PROVIDER !== "gemini_cli" && isPerguntaMapasPathOfExile(texto)) {
-    console.log("🧭 [Question/Fixo] Respondendo mapas de Path of Exile sem chamar LLM.");
-    return message.reply({
-      content: respostaMapasPathOfExile(),
-      allowedMentions: { repliedUser: false, parse: [] }
-    });
-  }
-
-  try {
-    const resposta = await perguntarQuestion(texto);
-
-    return sendChunkedReply(message, resposta);
-  } catch (err) {
-    console.log("🔥 Erro no comando !question:", err.message);
-    if (isPerguntaMapasPathOfExile(texto)) {
-      console.log("🧭 [Question/Fixo] Usando resposta segura de mapas de Path of Exile após falha do provider.");
-      return message.reply({
-        content: respostaMapasPathOfExile(),
-        allowedMentions: { repliedUser: false, parse: [] }
-      });
-    }
-    return message.reply("⚠️ Erro ao processar a pergunta pela IA.");
-  }
-}
 
 async function handleClearCommand(message, text) {
   let amount = 100;
@@ -234,7 +178,6 @@ async function handleMessage(message) {
 
   coletarGifs(message);
   cachearMensagem(message);
-  maybeExtrairFofocas(message);
   checkAndSpawnEvent(message);
   checkAndSendTip(message);
 
@@ -400,14 +343,6 @@ async function handleMessage(message) {
     return message.reply({ embeds: [embed] });
   }
 
-  if (isCommand(message, ["!nana"])) {
-    return handleTextCommand(message);
-  }
-
-  if (isCommand(message, ["!question"])) {
-    return handleQuestionCommand(message);
-  }
-
   if (isCommand(message, ["!img", "!anime"])) {
     const isAnime = isCommand(message, ["!anime"]);
     const cmd = isAnime ? "!anime" : "!img";
@@ -415,7 +350,7 @@ async function handleMessage(message) {
     return handleImageCommand(message, { prompt, isAnime, cmd });
   }
 
-  return maybeResponderEspontaneo(message);
+  return;
 }
 
 function start(options = {}) {
