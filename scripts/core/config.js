@@ -38,10 +38,12 @@ const GIFS_PATH = path.resolve(ROOT_DIR, getEnvString("GIFS_PATH", path.join("da
 const FOFOCAS_PATH = path.resolve(ROOT_DIR, getEnvString("FOFOCAS_PATH", path.join("data", "fofocas.json")));
 const ECONOMIA_PATH = path.resolve(ROOT_DIR, getEnvString("ECONOMIA_PATH", path.join("data", "economia.json")));
 const TIMERS_PATH = path.resolve(ROOT_DIR, getEnvString("TIMERS_PATH", path.join("data", "timers.json")));
+const XP_PATH = path.resolve(ROOT_DIR, getEnvString("XP_PATH", path.join("data", "xp.json")));
 ensureDir(path.dirname(GIFS_PATH));
 ensureDir(path.dirname(FOFOCAS_PATH));
 ensureDir(path.dirname(ECONOMIA_PATH));
 ensureDir(path.dirname(TIMERS_PATH));
+ensureDir(path.dirname(XP_PATH));
 
 const STATIC_CONFIG_DIR = path.resolve(ROOT_DIR, getEnvString("STATIC_CONFIG_DIR", path.join("data", "config")));
 const STATIC_GAMES_DIR = path.resolve(ROOT_DIR, getEnvString("STATIC_GAMES_DIR", path.join("data", "games")));
@@ -67,6 +69,7 @@ const config = {
   FOFOCAS_PATH,
   ECONOMIA_PATH,
   TIMERS_PATH,
+  XP_PATH,
   DEFAULT_GIF_URL: getEnvString("DEFAULT_GIF_URL", "https://media.tenor.com/Z4cOQWc-DscAAAAC/banana.gif"),
   POLITICAS_PATH: path.resolve(ROOT_DIR, getEnvString("POLITICAS_PATH", path.join("data", "policies", "politicas.txt"))),
   POLITICAS_IMAGEM_PATH: path.resolve(ROOT_DIR, getEnvString("POLITICAS_IMAGEM_PATH", path.join("data", "policies", "politicas_imagem.txt"))),
@@ -141,6 +144,7 @@ config.paths = {
   fofocas: FOFOCAS_PATH,
   economia: ECONOMIA_PATH,
   timers: TIMERS_PATH,
+  xp: XP_PATH,
   inventory: path.resolve(DATA_DIR, "inventory.json"),
   market: path.resolve(DATA_DIR, "market.json"),
   triviaHistory: path.resolve(DATA_DIR, "triviaHistory.json"),

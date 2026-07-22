@@ -25,6 +25,7 @@ function validateInstagramUrl(rawUrl) {
   if (!INSTAGRAM_HOSTS.has(parsed.hostname.toLowerCase())) {
     throw new Error("Apenas links do Instagram são aceitos para vídeos automáticos.");
   }
+  parsed.search = "";
   return parsed.toString();
 }
 
@@ -84,6 +85,18 @@ function extractDirectMp4Url(providerPayload) {
   return pickedUrl || null;
 }
 
+function extractShortcode(instagramUrl) {
+  try {
+    const parsed = new URL(instagramUrl);
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const index = parts.findIndex(p => p === "reel" || p === "p" || p === "reels");
+    if (index !== -1 && parts[index + 1]) {
+      return parts[index + 1];
+    }
+  } catch {}
+  return null;
+}
+
 async function resolveDirectMp4Url(instagramUrl, options = {}) {
   const sourceUrl = validateInstagramUrl(instagramUrl);
   const retries = Number.isInteger(options.retries) ? options.retries : config.VIDEO_PROVIDER_RETRIES;
@@ -91,31 +104,77 @@ async function resolveDirectMp4Url(instagramUrl, options = {}) {
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
-      if (options.providerUrl) {
-        const response = await fetchWithTimeout(options.providerUrl, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ url: sourceUrl })
-        }, options.providerTimeoutMs || config.VIDEO_PROVIDER_TIMEOUT_MS || config.VIDEO_DOWNLOAD_TIMEOUT_MS, options.fetchImpl || fetch);
+      const shortcode = extractShortcode(sourceUrl);
+      const docIds = ["10015901848480474", "8845758582119845", "9510064595728286"];
 
-        if (!response.ok) {
-          throw new Error(`Provider respondeu status ${response.status}.`);
+      if (shortcode) {
+        for (const docId of docIds) {
+          try {
+            const body = new URLSearchParams({
+              variables: JSON.stringify({
+                shortcode: shortcode,
+                fetch_tagged_user_count: null,
+                hoisted_comment_id: null,
+                hoisted_reply_id: null
+              }),
+              doc_id: docId
+            }).toString();
+
+            const response = await fetchWithTimeout("https://www.instagram.com/graphql/query", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                "X-IG-App-ID": "936619743392459"
+              },
+              body: body
+            }, options.providerTimeoutMs || config.VIDEO_PROVIDER_TIMEOUT_MS || config.VIDEO_DOWNLOAD_TIMEOUT_MS, options.fetchImpl || fetch);
+
+            if (response.ok) {
+              const json = await response.json();
+              const media = json?.data?.xdt_shortcode_media;
+              if (media) {
+                const directUrl = media.video_url || media.video_versions?.[0]?.url;
+                if (directUrl) return assertHttpsUrl(directUrl, "URL direta do MP4").toString();
+
+                if (media.edge_sidecar_to_children?.edges?.length) {
+                  const videoEdge = media.edge_sidecar_to_children.edges.find(e => e.node?.is_video && e.node?.video_url);
+                  if (videoEdge?.node?.video_url) return assertHttpsUrl(videoEdge.node.video_url, "URL direta do MP4").toString();
+                }
+              }
+            }
+          } catch (e) {
+            // Tentar próximo doc_id
+          }
         }
+      }
 
-        const payload = await response.json();
-        const directUrl = extractDirectMp4Url(payload);
-        if (!directUrl) throw new Error("Provider não retornou URL direta do MP4.");
+      // Fallback 1: providerUrl se configurado
+      const providerUrl = options.providerUrl || config.VIDEO_PROVIDER_URL;
+      if (providerUrl) {
+        try {
+          const response = await fetchWithTimeout(providerUrl, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ url: sourceUrl })
+          }, options.providerTimeoutMs || config.VIDEO_PROVIDER_TIMEOUT_MS || config.VIDEO_DOWNLOAD_TIMEOUT_MS, options.fetchImpl || fetch);
+
+          if (response.ok) {
+            const payload = await response.json();
+            const directUrl = extractDirectMp4Url(payload);
+            if (directUrl) return assertHttpsUrl(directUrl, "URL direta do MP4").toString();
+          }
+        } catch (e) {
+          // Tentar próximo fallback
+        }
+      }
+
+      // Fallback 2: instagramGetUrl da biblioteca
+      const payload = await instagramGetUrl(sourceUrl);
+      if (payload && payload.url_list && payload.url_list.length > 0) {
+        const directUrl = payload.url_list[0];
         return assertHttpsUrl(directUrl, "URL direta do MP4").toString();
       }
-
-      const payload = await instagramGetUrl(sourceUrl);
-      
-      if (!payload || !payload.url_list || payload.url_list.length === 0) {
-        throw new Error("Provider não retornou URL direta do MP4.");
-      }
-      
-      const directUrl = payload.url_list[0];
-      return assertHttpsUrl(directUrl, "URL direta do MP4").toString();
     } catch (err) {
       lastError = err;
     }

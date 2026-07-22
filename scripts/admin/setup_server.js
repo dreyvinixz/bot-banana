@@ -1,27 +1,26 @@
 const fs = require("fs");
 const path = require("path");
-const { ChannelType, PermissionFlagsBits } = require("discord.js");
+const { ChannelType, PermissionFlagsBits, MessageFlags } = require("discord.js");
 const { requireSuperAdmin } = require("./admin");
 const config = require("../core/config");
 
-const DATA_FILE = path.join(process.cwd(), "data", "setup_cabere.json");
+let setupState = null;
+const DATA_FILE = path.join(config.DATA_DIR, "setup_cabere.json");
 
 function loadState() {
   if (fs.existsSync(DATA_FILE)) {
     try {
-      return JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+      setupState = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
     } catch (e) {
-      console.error("Erro ao ler setup_cabere.json", e);
+      setupState = { roles: {}, categories: {}, channels: {} };
     }
+  } else {
+    setupState = { roles: {}, categories: {}, channels: {} };
   }
-  return { roles: {}, categories: {}, channels: {} };
 }
 
 function saveState(state) {
   try {
-    if (!fs.existsSync(path.dirname(DATA_FILE))) {
-      fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
-    }
     fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2), "utf-8");
   } catch (e) {
     console.error("Erro ao salvar setup_cabere.json", e);
@@ -31,7 +30,7 @@ function saveState(state) {
 async function handleSetupCabereCommand(interaction) {
   const isAdmin = config.SUPERADMIN_IDS.includes(String(interaction.user.id));
   if (!isAdmin) {
-    return interaction.reply({ content: "❌ Apenas o Superadmin pode usar este comando!", ephemeral: true });
+    return interaction.reply({ content: "❌ Apenas o Superadmin pode usar este comando!", flags: MessageFlags.Ephemeral });
   }
 
   // Deferimos a resposta porque criar muitos canais vai demorar

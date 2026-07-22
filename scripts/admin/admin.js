@@ -1,3 +1,5 @@
+const path = require("path");
+const fs = require("fs");
 const config = require("../core/config");
 const { EmbedBuilder } = require("discord.js");
 
@@ -241,14 +243,27 @@ async function handleAdminCommand(message) {
   if (command.startsWith("!setup_regras")) {
     return handleSetupRegrasCommand(message);
   }
-  if (command.startsWith("!setup_cargos_info")) {
+  if (command.startsWith("!setup_cargos_info") || command.startsWith("!setup_cargos")) {
     return handleSetupCargosInfoCommand(message);
   }
-  if (command.startsWith("!setup_avisos")) {
+  if (command.startsWith("!setup_avisos") || command.startsWith("!anunciar_novidades")) {
     return handleSetupAvisosCommand(message);
+  }
+  if (command.startsWith("!setup_publi")) {
+    return handleSetupPubliCommand(message);
+  }
+  if (command.startsWith("!setup_competicoes") || command.startsWith("!setup_competicao")) {
+    return handleSetupCompeticoesCommand(message);
   }
   if (command.startsWith("!setup_caixa_info")) {
     return handleSetupCaixaInfoCommand(message);
+  }
+  if (command.startsWith("!setup_reviews")) {
+    return handleSetupReviewsCommand(message);
+  }
+  if (command.startsWith("!setup_familia")) {
+    const { handleSetupFamiliaCommand } = require("../features/familia");
+    return handleSetupFamiliaCommand(message);
   }
   return false;
 }
@@ -301,7 +316,8 @@ async function handleSetupCaixaInfoCommand(interactionOrMessage) {
 async function handleSetupAvisosCommand(interactionOrMessage) {
   const isMessage = !!interactionOrMessage.content;
   const guild = interactionOrMessage.guild;
-  const channel = guild.channels.cache.find(c => c.name.includes("avisos"));
+  let channel = guild.channels.cache.get("1528288021437354004") || guild.channels.cache.find(c => c.name.includes("avisos"));
+  if (!channel) channel = interactionOrMessage.channel;
 
   if (!channel) {
     const errorMsg = "❌ Canal de avisos não encontrado!";
@@ -309,23 +325,56 @@ async function handleSetupAvisosCommand(interactionOrMessage) {
   }
 
   try {
+    const { AttachmentBuilder } = require("discord.js");
+    const path = require("path");
+    const fs = require("fs");
+
+    const bannerKabarePath = path.join(process.cwd(), "assets", "banner_kabare.png");
+    let files = [];
+    if (fs.existsSync(bannerKabarePath)) {
+      files.push(new AttachmentBuilder(bannerKabarePath, { name: "banner_kabare.png" }));
+    }
+
     const embedAvisos = new EmbedBuilder()
-      .setColor("#FFD700")
-      .setTitle("📢 Fique por dentro de tudo!")
-      .setDescription("Este é o **Canal Oficial de Avisos** do Caberé.\n\nAqui a Equipe vai postar todas as novidades importantes para a comunidade. Sugerimos que você deixe as notificações deste canal ativadas!")
+      .setColor("#8A2BE2")
+      .setTitle("🔮 CENTRAL DE ANÚNCIOS — NOVIDADES DO CABERÉ!")
+      .setDescription("Chegaram super novidades e atualizações gigantes no servidor! Fiquem por dentro de tudo o que foi implementado para melhorar a nossa comunidade:")
       .addFields(
-        { name: "O que será postado aqui?", value: "• 🆕 Atualizações do Servidor\n• 🤖 Novos comandos e funções do BotBanana\n• 🎉 Anúncio de Eventos e Competições\n• 🎁 Resultados de Sorteios\n• 🐉 Alertas de Invasões (Raids Globais)" },
-        { name: "Posso responder?", value: "Apenas membros da equipe podem enviar mensagens aqui para não virar bagunça, mas você pode reagir com emojis em todas as postagens!" }
+        {
+          name: "🖼️ Novo Banner Oficial do Servidor",
+          value: "Apresentamos o nosso novo banner temático exclusivo em roxo com estilo anime do **Caberé**! Deixem o servidor ainda mais bonito de compartilhar!"
+        },
+        {
+          name: "⚡ Novo Sistema de XP e Níveis (`!xp` / `!nivel`)",
+          value: "Agora toda mensagem que você envia gera experiência (XP)! Suba de nível para desbloquear cargos automáticos, permissões exclusivas (mídias, links) e bônus progressivos. Use `!xp` para ver seu nível e `!rankxp` para ver os líderes!"
+        },
+        {
+          name: "💖 Verificação da Família Caberé (+200% XP)",
+          value: "Quer se destacar e evoluir 3x mais rápido? Adicione o convite `https://discord.gg/gNu3daPca` no seu Status do Discord ou BIO e clique no botão de verificação no canal da família para receber o cargo exclusivo **@💖 Família Caberé** e **+200% de XP**!"
+        },
+        {
+          name: "👑 Nova Central de Cargos & Benefícios",
+          value: "Confira todas as recompensas de nível e tempo em chamadas de voz no canal de cargos!"
+        },
+        {
+          name: "🎬 Sistema de Reels & Entretenimento (`!reels`)",
+          value: "Os canais de mídia agora contam com o envio diário de vídeos reels divertidos, além do painel `!reels` para você mandar seus vídeos favoritos!"
+        }
       )
-      .setFooter({ text: "Equipe Caberé - BotBanana" })
-      .setThumbnail(guild.iconURL({ dynamic: true }) || null);
+      .setFooter({ text: "© Caberé — BotBanana • Todos os direitos reservados." })
+      .setTimestamp();
+
+    if (files.length > 0) {
+      embedAvisos.setImage("attachment://banner_kabare.png");
+    }
 
     await channel.send({ 
-      content: "# 📢 Central de Avisos Caberé", 
-      embeds: [embedAvisos] 
+      content: "@here 📢 **ATENÇÃO FAMÍLIA CABERÉ — NOVIDADES E NOVO BANNER DO SERVIDOR!**", 
+      embeds: [embedAvisos],
+      files: files
     });
 
-    const successMsg = "✅ Informações de avisos enviadas para o canal!";
+    const successMsg = `✅ Anúncio oficial com o novo banner publicado com sucesso no canal <#${channel.id}> com menção @here!`;
     if (isMessage) {
       await interactionOrMessage.reply(successMsg);
     } else {
@@ -342,59 +391,304 @@ async function handleSetupAvisosCommand(interactionOrMessage) {
   }
 }
 
-async function handleSetupCargosInfoCommand(interactionOrMessage) {
+async function handleSetupPubliCommand(interactionOrMessage) {
   const isMessage = !!interactionOrMessage.content;
   const guild = interactionOrMessage.guild;
-  const channel = guild.channels.cache.get("1528288022909423797");
+  let channel = guild.channels.cache.get("1529582031116173323") || guild.channels.cache.find(c => c.name.includes("publi") || c.name.includes("parceria"));
+  if (!channel) channel = interactionOrMessage.channel;
 
   if (!channel) {
-    const errorMsg = "❌ Canal de cargos (1528288022909423797) não encontrado!";
+    const errorMsg = "❌ Canal de divulgações/publi não encontrado!";
     return isMessage ? interactionOrMessage.reply(errorMsg) : interactionOrMessage.editReply(errorMsg);
   }
 
   try {
-    const embedConquistas = new EmbedBuilder()
-      .setColor("#ffaa00")
-      .setTitle("🏆 Cargos de Conquista")
-      .setDescription("Estes cargos mostram os seus maiores feitos no servidor e podem ser acumulados!")
+    const embedPubli = new EmbedBuilder()
+      .setColor("#FFD700")
+      .setTitle("📢 CENTRAL DE DIVULGAÇÕES & PARCERIAS — CABERÉ")
+      .setDescription("Espaço dedicado para divulgações oficiais, parceiros da comunidade e projetos apoiados pelo servidor.")
       .addFields(
-        { name: "🏆 Campeão da Bagaça", value: "Vencedor de eventos e competições do servidor." },
-        { name: "💎 Patrono da Baguga", value: "Apoiadores do servidor." },
-        { name: "🚀 Booster", value: "Membros que deram Boost (Impulso) no Discord e têm acesso aos Camarins." },
-        { name: "🗣️ Women Propaganda", value: "Maior divulgadora do servidor." },
-        { name: "💸 Milionário de Taubaté", value: "Ficou rico na economia do BotBanana (use `!saldo`)." },
-        { name: "🎁 Mão de Vaca", value: "Acumulador compulsivo de Nanacoins." },
-        { name: "📣 Vendedor de Convite", value: "Trouxe novos membros para o Caberé." }
-      );
-
-    const embedProgressao = new EmbedBuilder()
-      .setColor("#1e90ff")
-      .setTitle("📈 Cargos de Progressão (XP)")
-      .setDescription("Sua atividade no chat te faz subir de nível. Você só pode ter um desses cargos por vez! Quanto mais você conversa, mais alto chega na hierarquia.")
-      .addFields(
-        { name: "👑 Lenda da Resenha", value: "Nível Máximo - A maior lenda da comunidade!" },
-        { name: "🤡 Agente do Caos", value: "Nível 50 - Você já faz parte da mobília." },
-        { name: "💬 Já É de Casa", value: "Nível 25 - Conhece todo mundo." },
-        { name: "🪑 Sentou na Resenha", value: "Nível 10 - Acabou de se enturmar." },
-        { name: "🥚 Chegou Agora", value: "Nível 1 - Novato no Caberé." }
-      );
-
-    const embedEquipe = new EmbedBuilder()
-      .setColor("#ff0000")
-      .setTitle("🛡️ Equipe Caberé")
-      .setDescription("Responsáveis por manter a paz (ou o caos organizado) no servidor.")
-      .addFields(
-        { name: "👑 Rei do Cabaré", value: "Dono do servidor." },
-        { name: "🔨 Segurança de Vitrine", value: "Os moderadores que aplicam as regras." }
+        {
+          name: "📌 Diretrizes de Divulgação",
+          value: [
+            "• É proibido divulgar conteúdos ofensivos, ilícitos ou links maliciosos.",
+            "• Divulgações de outros servidores do Discord devem ser negociadas com a Staff.",
+            "• Para fechar parcerias ou solicitar publi oficial, abra um ticket no canal de suporte."
+          ].join("\n")
+        },
+        {
+          name: "🤝 Como se tornar um Parceiro?",
+          value: "Servidores ou criadores de conteúdo que possuem público ativo podem solicitar o cargo de **Parceiro Oficial** com acesso a divulgações cruzadas no Caberé."
+        }
       )
-      .setFooter({ text: "Use o canal de dúvidas caso precise de ajuda!" });
+      .setFooter({ text: "Equipe Caberé — Divulgações & Parcerias" })
+      .setTimestamp();
 
-    await channel.send({ 
-      content: "# 🎭 Painel de Cargos e Conquistas\nEntenda como funciona a hierarquia do nosso servidor e lute pelos seus cargos!", 
-      embeds: [embedProgressao, embedConquistas, embedEquipe] 
+    await channel.send({
+      content: "# 📢 Canal de Divulgações & Parcerias",
+      embeds: [embedPubli]
     });
 
-    const successMsg = "✅ Informações de cargos enviadas para o canal!";
+    const successMsg = `✅ Painel de divulgações/publi configurado com sucesso no canal <#${channel.id}>!`;
+    if (isMessage) {
+      await interactionOrMessage.reply(successMsg);
+    } else {
+      await interactionOrMessage.editReply(successMsg);
+    }
+  } catch (error) {
+    console.error(error);
+    const errorMsg = "❌ Erro ao configurar canal de publi.";
+    if (isMessage) {
+      await interactionOrMessage.reply(errorMsg);
+    } else {
+      await interactionOrMessage.editReply(errorMsg);
+    }
+  }
+}
+
+async function handleSetupCompeticoesCommand(interactionOrMessage) {
+  const isMessage = !!interactionOrMessage.content;
+  const guild = interactionOrMessage.guild;
+  let channel = guild.channels.cache.get("1528288038826934312") || guild.channels.cache.find(c => c.name.includes("competi") || c.name.includes("torneio"));
+  if (!channel) channel = interactionOrMessage.channel;
+
+  if (!channel) {
+    const errorMsg = "❌ Canal de competições não encontrado!";
+    return isMessage ? interactionOrMessage.reply(errorMsg) : interactionOrMessage.editReply(errorMsg);
+  }
+
+  try {
+    const embedComp = new EmbedBuilder()
+      .setColor("#FF4500")
+      .setTitle("⚔️ ARENA DE COMPETIÇÕES & TORNEIOS — CABERÉ")
+      .setDescription("Bem-vindo à arena oficial de desafios e eventos do Caberé! Aqui acontecem as maiores disputas da nossa comunidade.")
+      .addFields(
+        {
+          name: "🐉 Eventos de World Boss & Raids Globais",
+          value: "Monstros épicos invadem os canais do servidor! Ataque os chefões para ganhar prêmios gigantescos em Nanacoins 🪙 e cargos exclusivos."
+        },
+        {
+          name: "⚔️ Torneios de Duelo RPG (`!duelo`)",
+          value: "Desafie outros membros para duelos valendo prêmios no chat! Prove quem é o verdadeiro campeão do servidor."
+        },
+        {
+          name: "🏆 Placar dos Campeões & Nível (`!rankxp`)",
+          value: "Os membros mais ativos e vitoriosos garantem vagas no Hall da Fama do Caberé e ganham cargos especiais de destaque."
+        },
+        {
+          name: "🎁 Premiações & Recompensas",
+          value: "Nanacoins 🪙 no Banco, VIPs exclusivos, bônus de XP e títulos lendários para os vencedores de cada competição."
+        }
+      )
+      .setFooter({ text: "Boa sorte a todos os gladiadores!" })
+      .setTimestamp();
+
+    await channel.send({
+      content: "# ⚔️ Arena de Competições & Torneios Caberé",
+      embeds: [embedComp]
+    });
+
+    const successMsg = `✅ Painel de competições configurado com sucesso no canal <#${channel.id}>!`;
+    if (isMessage) {
+      await interactionOrMessage.reply(successMsg);
+    } else {
+      await interactionOrMessage.editReply(successMsg);
+    }
+  } catch (error) {
+    console.error(error);
+    const errorMsg = "❌ Erro ao configurar canal de competições.";
+    if (isMessage) {
+      await interactionOrMessage.reply(errorMsg);
+    } else {
+      await interactionOrMessage.editReply(errorMsg);
+    }
+  }
+}
+
+async function getOrFetchRoleTag(guild, roleName, iconFileName = null) {
+  if (!guild || !guild.roles) return `@${roleName}`;
+  const nameLower = roleName.toLowerCase();
+  let role = guild.roles.cache.find(r => r.name.toLowerCase().includes(nameLower));
+  if (!role) {
+    try {
+      await guild.roles.fetch().catch(() => null);
+      role = guild.roles.cache.find(r => r.name.toLowerCase().includes(nameLower));
+    } catch (e) {}
+  }
+
+  // Tentar atribuir o favicon como ícone oficial do cargo (se o servidor tiver Nível 2 de Boost)
+  if (role && iconFileName) {
+    const iconPath = path.join(process.cwd(), "assets", "favicons", iconFileName);
+    if (fs.existsSync(iconPath)) {
+      try {
+        await role.setIcon(iconPath).catch(() => null);
+      } catch (e) {}
+    }
+  }
+
+  return role ? `<@&${role.id}>` : `@${roleName}`;
+}
+
+async function getFaviconEmoji(guild, emojiName, fileName) {
+  if (!guild || !guild.emojis) return "";
+  const cleanName = emojiName.replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase();
+
+  let emoji = guild.emojis.cache.find(e => e.name.toLowerCase() === cleanName);
+  if (emoji) {
+    return `<:${emoji.name}:${emoji.id}>`;
+  }
+
+  const faviconPath = path.join(process.cwd(), "assets", "favicons", fileName);
+  if (fs.existsSync(faviconPath)) {
+    try {
+      emoji = await guild.emojis.create({ attachment: faviconPath, name: cleanName }).catch(() => null);
+      if (emoji) return `<:${emoji.name}:${emoji.id}>`;
+    } catch (e) {}
+  }
+
+  return "";
+}
+
+async function handleSetupCargosInfoCommand(interactionOrMessage) {
+  const isMessage = !!interactionOrMessage.content;
+  const guild = interactionOrMessage.guild;
+  let channel = guild.channels.cache.get("1528288022909423797") || guild.channels.cache.find(c => c.name.includes("cargo") || c.name.includes("cargos"));
+  if (!channel) {
+    channel = interactionOrMessage.channel;
+  }
+
+  if (!channel) {
+    const errorMsg = "❌ Canal de cargos não encontrado!";
+    return isMessage ? interactionOrMessage.reply(errorMsg) : interactionOrMessage.editReply(errorMsg);
+  }
+
+  try {
+    const { AttachmentBuilder } = require("discord.js");
+    const path = require("path");
+    const fs = require("fs");
+
+    // Tentar carregar/registrar os Favicons como Emojis do Servidor
+    const icMembro = (await getFaviconEmoji(guild, "cargos_membro", "membro.webp")) || "🥚";
+    const icGhost = (await getFaviconEmoji(guild, "cargos_ghost", "ghost.webp")) || "🪑";
+    const icVampire = (await getFaviconEmoji(guild, "cargos_vampire", "vampire.webp")) || "💬";
+    const icDemon = (await getFaviconEmoji(guild, "cargos_demon", "demon.webp")) || "🤡";
+    const icKing = (await getFaviconEmoji(guild, "cargos_king", "king.webp")) || "👑";
+    const icVoice = (await getFaviconEmoji(guild, "cargos_voice", "voice_icon.webp")) || "🎙️";
+    const icAtivo = (await getFaviconEmoji(guild, "cargos_ativo", "ativo.webp")) || "⚡";
+    const icSuperAtivo = (await getFaviconEmoji(guild, "cargos_superativo", "superativo.webp")) || "🔥";
+    const icExtremamente = (await getFaviconEmoji(guild, "cargos_extremamente", "extremamente_ativo.webp")) || "💥";
+    const icAngel = (await getFaviconEmoji(guild, "cargos_angel", "angel.webp")) || "💖";
+
+    // Buscar as menções reais dos cargos do servidor
+    const rChegou = await getOrFetchRoleTag(guild, "Chegou Agora", "membro.webp");
+    const rSentou = await getOrFetchRoleTag(guild, "Sentou na Resenha", "ghost.webp");
+    const rCasa = await getOrFetchRoleTag(guild, "Já É de Casa", "vampire.webp");
+    const rCaos = await getOrFetchRoleTag(guild, "Agente do Caos", "demon.webp");
+    const rLenda = await getOrFetchRoleTag(guild, "Lenda da Resenha", "king.webp");
+
+    const rVoz1 = await getOrFetchRoleTag(guild, "Voz Promissora", "voice_icon.webp");
+    const rVoz2 = await getOrFetchRoleTag(guild, "Amante das Conversas", "voice_icon.webp");
+    const rVoz3 = await getOrFetchRoleTag(guild, "Mestre das Calls", "voice_icon.webp");
+    const rVoz4 = await getOrFetchRoleTag(guild, "Dono de Podcast", "voice_icon.webp");
+    const rVoz5 = await getOrFetchRoleTag(guild, "Voz Suprema", "king.webp");
+
+    const rAtivo1 = await getOrFetchRoleTag(guild, "Ativo", "ativo.webp");
+    const rAtivo2 = await getOrFetchRoleTag(guild, "Super Ativo", "superativo.webp");
+    const rAtivo3 = await getOrFetchRoleTag(guild, "Extremamente Ativo", "extremamente_ativo.webp");
+    const rFamilia = await getOrFetchRoleTag(guild, "Família Caberé", "angel.webp");
+
+    const bannerCargosPath = path.join(process.cwd(), "assets", "banner_cargos.png");
+    let files = [];
+    let hasBanner = false;
+
+    if (fs.existsSync(bannerCargosPath)) {
+      files.push(new AttachmentBuilder(bannerCargosPath, { name: "banner_cargos.png" }));
+      hasBanner = true;
+    }
+
+    const embedHeader = new EmbedBuilder()
+      .setColor("#E60023")
+      .setTitle("👑 CABERÉ CARGOS — Sistema de Progressão e Vantagens")
+      .setDescription("No **Caberé**, cada função faz a diferença! Possuímos um sistema completo de evolução onde sua atividade no servidor te concede cargos de prestígio, permissões especiais e bônus em experiência.\n\nParticipe ativamente nos canais de texto e de voz para subir de nível e conquistar cada recompensa!")
+      .addFields(
+        {
+          name: "✢ Cargos por Nível (Canais de Texto) ✢",
+          value: [
+            `${icMembro} ${rChegou} • Nível 1`,
+            `${icGhost} ${rSentou} • Nível 10`,
+            `${icVampire} ${rCasa} • Nível 25`,
+            `${icDemon} ${rCaos} • Nível 50`,
+            `${icKing} ${rLenda} • Nível 100`
+          ].join("\n")
+        },
+        {
+          name: "✢ Cargos por Tempo de Call (Voz) ✢",
+          value: [
+            `${icVoice} ${rVoz1} • 7 horas em Call`,
+            `${icVoice} ${rVoz2} • 24 horas em Call`,
+            `${icVoice} ${rVoz3} • 72 horas em Call`,
+            `${icVoice} ${rVoz4} • 168 horas em Call`,
+            `${icKing} ${rVoz5} • 336 horas em Call`
+          ].join("\n")
+        },
+        {
+          name: "✢ Cargos por Atividade Semanal ✢",
+          value: [
+            `${icAtivo} ${rAtivo1} • 500 Mensagens enviadas em 7 dias`,
+            `${icSuperAtivo} ${rAtivo2} • 1.500 Mensagens enviadas em 7 dias`,
+            `${icExtremamente} ${rAtivo3} • 3.000 Mensagens enviadas em 7 dias`
+          ].join("\n")
+        }
+      );
+
+    if (hasBanner) {
+      embedHeader.setImage("attachment://banner_cargos.png");
+    }
+
+    const embedBeneficios = new EmbedBuilder()
+      .setColor("#DC143C")
+      .setTitle("🎁 Benefícios e Desbloqueios por Nível")
+      .setDescription("Confira o que você desbloqueia conforme avança de nível no servidor:")
+      .addFields(
+        {
+          name: `🌱 Nível 1 — ${rChegou}`,
+          value: "• Permissão para alterar seu próprio apelido no servidor."
+        },
+        {
+          name: `🪑 Nível 10 — ${rSentou}`,
+          value: "• Permissão para enviar mídias e arquivos nos chats principais."
+        },
+        {
+          name: `💬 Nível 25 — ${rCasa}`,
+          value: "• Permissão para enviar links integrados nos canais de texto;\n• **+50% de bônus de XP** no ganho de experiência das mensagens."
+        },
+        {
+          name: `🤡 Nível 50 — ${rCaos}`,
+          value: "• Acesso aos canais VIPs e Camarim exclusivo;\n• **+100% de bônus de XP** (2x XP por mensagem);\n• Imunidade a limites de maiúsculas (Caps Lock) pelo AutoMod."
+        },
+        {
+          name: `👑 Nível 100 — ${rLenda}`,
+          value: "• Destaque no topo da lista de membros;\n• **+200% de bônus de XP** (3x XP por mensagem);\n• Imunidade contra duplicação de caracteres e limites de emojis;\n• Acesso completo aos chats de alta relevância."
+        },
+        {
+          name: "💖 Bônus Extra: Família Caberé (+200% XP)",
+          value: `Coloque o convite oficial do servidor em seu Status do Discord ou BIO e use o botão no canal da família para receber o cargo exclusivo ${rFamilia} e um bônus imediato de **+200% de XP (3x Total)**!`
+        },
+        {
+          name: "📊 Como consultar seu Nível e Ranking?",
+          value: "• Digite `!xp` ou `!nivel` para ver suas estatísticas, nível e barra de progresso.\n• Digite `!rankxp` ou `!topxp` para visualizar o Placar dos Líderes do servidor."
+        }
+      )
+      .setFooter({ text: "© Caberé — Todos os direitos reservados." })
+      .setTimestamp();
+
+    await channel.send({
+      content: "# 🎭 Central de Cargos e Benefícios — Caberé",
+      embeds: [embedHeader, embedBeneficios],
+      files: files
+    });
+
+    const successMsg = `✅ Informações do painel de cargos publicadas com sucesso no canal <#${channel.id}>!`;
     if (isMessage) {
       await interactionOrMessage.reply(successMsg);
     } else {
@@ -411,6 +705,62 @@ async function handleSetupCargosInfoCommand(interactionOrMessage) {
   }
 }
 
+async function handleSetupReviewsCommand(interactionOrMessage) {
+  const isMessage = !!interactionOrMessage.content;
+  const guild = interactionOrMessage.guild;
+  const channel = guild.channels.cache.find(c => c.name.includes("reviews"));
+
+  if (!channel) {
+    const errorMsg = "❌ Canal 'reviews-do-kabaré' não encontrado!";
+    return isMessage ? interactionOrMessage.reply(errorMsg) : interactionOrMessage.editReply(errorMsg);
+  }
+
+  try {
+    const embedReviews = new EmbedBuilder()
+      .setColor("#FF1493")
+      .setTitle("⭐ Diretrizes do Fórum: Reviews do Caberé")
+      .setDescription("Espaço dedicado para a comunidade mandar veredito, críticas e opiniões sobre **jogos, filmes, séries, animes, mídias e experiências**!")
+      .addFields(
+        { name: "📌 Como criar uma boa Review?", value: "• **Título Claro:** Coloque o nome da obra/produto e sua nota (ex: `[Jogo] Cyberpunk 2077 - ⭐ 4.5/5`).\n• **Resumo sem Spoilers:** Dê sua opinião geral sobre história, jogabilidade, gráficos ou som.\n• **Prós & Contras:** Destaque os pontos fortes e os pontos fracos.\n• **Veredito:** Vale o seu tempo e o seu dinheiro?" },
+        { name: "⚠️ Regras do Fórum", value: "• **Spoilers:** É **OBRIGATÓRIO** usar a tag de spoiler `||texto ou imagem||` para revelar partes importantes da história!\n• **Respeito de Opiniões:** Respeite o gosto alheio. Debater e discordar faz parte, mas ataques pessoais não serão tolerados.\n• **Tags Apropriadas:** Selecione a tag correta ao criar a postagem (🎮 Jogos, 🎬 Filmes/Séries, 🌸 Animes, 🎵 Música, 🤖 Tech/Bots)." }
+      )
+      .setFooter({ text: "Equipe Caberé — BotBanana 🍌" })
+      .setThumbnail(guild.iconURL({ dynamic: true }) || null);
+
+    if (channel.isThreadOnly?.() || channel.threads) {
+      await channel.threads.create({
+        name: "📌 [LEIA ANTES DE POSTAR] Diretrizes e Regras do Fórum",
+        message: {
+          content: "# 😉 Diretrizes e Manual do Fórum Reviews do Caberé",
+          embeds: [embedReviews]
+        }
+      }).catch(async () => {
+        await channel.send?.({ content: "# 😉 Diretrizes do Fórum Reviews do Caberé", embeds: [embedReviews] }).catch(() => null);
+      });
+    } else {
+      await channel.send({
+        content: "# 😉 Diretrizes do Fórum Reviews do Caberé",
+        embeds: [embedReviews]
+      });
+    }
+
+    const successMsg = "✅ Diretrizes de Reviews enviadas para o fórum!";
+    if (isMessage) {
+      await interactionOrMessage.reply(successMsg);
+    } else {
+      await interactionOrMessage.editReply(successMsg);
+    }
+  } catch (error) {
+    console.error(error);
+    const errorMsg = "❌ Erro ao configurar canal de reviews.";
+    if (isMessage) {
+      await interactionOrMessage.reply(errorMsg);
+    } else {
+      await interactionOrMessage.editReply(errorMsg);
+    }
+  }
+}
+
 module.exports = {
   isSuperAdmin,
   requireSuperAdmin,
@@ -418,5 +768,8 @@ module.exports = {
   handleSetupRegrasCommand,
   handleSetupCargosInfoCommand,
   handleSetupAvisosCommand,
-  handleSetupCaixaInfoCommand
+  handleSetupPubliCommand,
+  handleSetupCompeticoesCommand,
+  handleSetupCaixaInfoCommand,
+  handleSetupReviewsCommand
 };

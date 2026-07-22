@@ -15,6 +15,12 @@ const commands = [
     .setName("diario")
     .setDescription("Resgate sua recompensa diária!"),
   new SlashCommandBuilder()
+    .setName("xp")
+    .setDescription("Consulta seu cartão de nível, XP e barra de progresso visual."),
+  new SlashCommandBuilder()
+    .setName("rankxp")
+    .setDescription("Mostra o ranking dos membros com maior nível e XP do servidor."),
+  new SlashCommandBuilder()
     .setName("setup_regras")
     .setDescription("[Admin] Configura as regras do Caberé em um canal."),
   new SlashCommandBuilder()

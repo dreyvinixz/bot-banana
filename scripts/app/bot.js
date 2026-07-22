@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
+const { Client, GatewayIntentBits, EmbedBuilder, MessageFlags } = require("discord.js");
 const config = require("../core/config");
 const { isCommand, getCommandText } = require("../core/utils");
 const { handleVoiceCommand } = require("../voice/voice");
@@ -20,6 +20,7 @@ const { handleReelsCommand, handleReelsInteraction } = require("../features/reel
 const { handleAdminCommand } = require("../admin/admin");
 const { startVideoScheduler } = require("../core/videoScheduler");
 const { handleFaqMessage } = require("../features/faq");
+const { addXpFromMessage, handleXpCommand, handleRankXpCommand } = require("../features/xp");
 
 function createClient() {
   return new Client({
@@ -38,6 +39,10 @@ function buildHelpEmbed() {
     .setTitle('🤖 Comandos do Nana 🍌')
     .setDescription('Aqui está a lista de tudo que eu posso fazer por você no servidor!\nExplore os comandos por categoria abaixo.')
     .addFields(
+      { name: '📈 Nível & XP (Progressão)', value: [
+        '`!xp` / `!nivel` `[@user]` - ⚡ Veja seu cartão de nível, XP e progresso visual.',
+        '`!rankxp` / `!topxp` - 🏆 Mostra o Hall da Fama com os membros de maior nível!'
+      ].join('\n') },
       { name: '💰 Economia, Mercado & Forja', value: [
         '`!daily` / `!diario` - 🎁 Gire a roleta diária para prêmios!',
         '`!saldo` - 💵 Verifica quanto dinheiro virtual você tem.',
@@ -180,6 +185,7 @@ async function handleMessage(message) {
   cachearMensagem(message);
   checkAndSpawnEvent(message);
   checkAndSendTip(message);
+  addXpFromMessage(message);
 
   if (isPrisioneiro(message.author.id) && isCommand(message, ["!roubar", "!games"])) {
     return message.reply("🚓 Você está na prisão! Presidiários não podem jogar, duelar ou roubar.");
@@ -187,6 +193,14 @@ async function handleMessage(message) {
 
   if (checkForcaGuess(message)) {
     return;
+  }
+
+  if (isCommand(message, ["!xp", "!nivel", "!level"])) {
+    return handleXpCommand(message, getCommandText(message, ["!xp", "!nivel", "!level"]));
+  }
+
+  if (isCommand(message, ["!rankxp", "!topxp", "!xprank"])) {
+    return handleRankXpCommand(message);
   }
 
   if (isCommand(message, ["!help"])) {
@@ -397,7 +411,7 @@ function start(options = {}) {
     try {
       if (testMode && interaction.channelId !== testChannelId) {
         if (interaction.isRepliable?.()) {
-          await interaction.reply({ content: "🧪 Este bot de teste só responde no canal de testes.", ephemeral: true }).catch(() => null);
+          await interaction.reply({ content: "🧪 Este bot de teste só responde no canal de testes.", flags: MessageFlags.Ephemeral }).catch(() => null);
         }
         return;
       }
@@ -475,6 +489,9 @@ function start(options = {}) {
           return handleDailyCommand(mockMessage);
         }
       }
+
+      const { handleFamiliaButtonInteraction } = require("../features/familia");
+      if (await handleFamiliaButtonInteraction(interaction)) return;
 
       if (await handleEventInteraction(interaction)) return;
       if (await handleForcaThemeInteraction(interaction)) return;
