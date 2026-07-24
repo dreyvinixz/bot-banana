@@ -7,7 +7,7 @@
     "start": "node .",
     "start:test": "node . teste",
     "check": "node --check index.js && node -e \"const fs=require('fs'),path=require('path'),cp=require('child_process');function walk(d){for(const f of fs.readdirSync(d)){const p=path.join(d,f),s=fs.statSync(p);if(s.isDirectory())walk(p);else if(p.endsWith('.js'))cp.execFileSync(process.execPath,['--check',p],{stdio:'inherit'});}}walk('scripts');\"",
-    "test": "npm run check && node --test \"tests/**/*.test.js\"",
+    "test": "npm run check && node --test tests/",
     "test:trivia": "node tools/test_trivia.js"
   },
   "repository": {
