@@ -1,4 +1,5 @@
-require("dotenv").config({ path: "../../.env" });
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 const { REST, Routes, SlashCommandBuilder } = require("discord.js");
 
 // Ajuste para carregar o config relativo
