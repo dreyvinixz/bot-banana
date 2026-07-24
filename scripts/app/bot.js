@@ -21,6 +21,7 @@ const { handleAdminCommand } = require("../admin/admin");
 const { startVideoScheduler } = require("../core/videoScheduler");
 const { handleFaqMessage } = require("../features/faq");
 const { addXpFromMessage, handleXpCommand, handleRankXpCommand } = require("../features/xp");
+const { handleMemberJoin, handleWelcomeTestCommand } = require("../features/welcome");
 
 function createClient() {
   return new Client({
@@ -28,7 +29,8 @@ function createClient() {
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildVoiceStates,
       GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMembers
     ]
   });
 }
@@ -201,6 +203,10 @@ async function handleMessage(message) {
 
   if (isCommand(message, ["!rankxp", "!topxp", "!xprank"])) {
     return handleRankXpCommand(message);
+  }
+
+  if (isCommand(message, ["!boasvindas", "!welcome", "!simularboasvindas"])) {
+    return handleWelcomeTestCommand(message);
   }
 
   if (isCommand(message, ["!help"])) {
@@ -404,6 +410,12 @@ function start(options = {}) {
     if (testMode && message.channelId !== testChannelId) return;
     handleMessage(message).catch((err) => {
       console.error("🔥 Erro inesperado no messageCreate:", err);
+    });
+  });
+
+  client.on("guildMemberAdd", (member) => {
+    handleMemberJoin(member).catch((err) => {
+      console.error("🔥 Erro inesperado no guildMemberAdd:", err);
     });
   });
 
