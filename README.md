@@ -1,229 +1,105 @@
-# BotTTs
+# 🍌 BotBanana (BotTTs) — Discord Bot Framework
 
-BotTTs is a Discord bot focused on Portuguese-BR voice, OpenAI-powered chat, image generation, and a serious `!question` support mode.
+[![CI Pipeline](https://github.com/dreyvinixz/botTTs/actions/workflows/ci.yml/badge.svg)](https://github.com/dreyvinixz/botTTs/actions/workflows/ci.yml)
+[![CodeQL Security](https://github.com/dreyvinixz/botTTs/actions/workflows/codeql.yml/badge.svg)](https://github.com/dreyvinixz/botTTs/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
+[![Discord.js Version](https://img.shields.io/badge/discord.js-v14.21.0-blue.svg)](https://discord.js.org)
 
-The project is designed to run mostly locally:
+O **BotBanana** é uma aplicação completa e modular desenvolvida em Node.js e Discord.js para gestão de comunidades, gamificação, economia virtual, mini-games, moderação e inteligência artificial no Discord.
 
-- Discord integration with `discord.js`
-- Casual/persona chat through the OpenAI API
-- Serious `!question` support mode through the OpenAI API
-- Text-to-speech through Microsoft Edge TTS, with optional Google Cloud TTS
-- Image generation through Stable Diffusion Forge WebUI
-- Runtime memory for GIFs and server notes stored under `data/`
+---
 
-## Features
+## ✨ Principais Funcionalidades
 
-- Casual Discord persona responses when mentioned.
-- Low-frequency spontaneous replies for questions/media/casual chat.
-- `!question` mode for serious, professional answers.
-- OpenAI routing for chat, image prompt improvement, and `!question`.
-- `!imagem`, `!img`, and `!anime` commands for Forge image generation.
-- `!voz`, `!f`, and `!voice` commands for voice-channel TTS.
-- Auto-collection of GIF links used by the server.
-- Optional long-memory notes for a configured server.
+- 🏆 **Auto Roles & Conquistas Automáticas**: Atribuição automática de cargos por XP de texto, tempo em chamadas de voz, atividade semanal e conquistas (`Milionário de Taubaté`, `Ladrão`, `Campeão da Bagaça`, `Mão de Vaca`).
+- 💰 **Economia & Banco Virtual**: Sistema de saldo, transferências (`!doar`), roleta diária (`!daily`), ranking de milionários (`!rank`), bolsa de valores e mercado entre jogadores.
+- 🏪 **Loja & Proteção Parrudo**: Compra de proteções temporárias contra roubos (1h, 2h, 5h, 10h), lootboxes, materiais e consumíveis.
+- 🥷 **Sistema de Assaltos & Prisão**: Comando `!roubar` com probabilidade calculada, itens de invasão (Ácido Corrosivo, Pé de Cabra), contra-ataques (Escudo de Espinhos) e tempo de prisão com sistema de fiança (`!timeout`, `!fianca`).
+- ⚔️ **Guerras de Servidores (Raids)**: Disputa estratégica e guerras econômicas interservidores.
+- 🐉 **Combates contra World Boss & Mini Boss**: Invocação de monstros com fases, ranking de dano, recompensas e loot.
+- 🍌 **Menu Hub Central (`!menu`)**: Painel único navegável com botões interativos e select menu para fácil acesso a todos os recursos.
+- 💖 **Verificação da Família (+200% XP)**: Leitura dupla no **Status Personalizado** e na **Bio** (via endpoint REST de perfil) com bônus de experiência imediato.
+- 🎬 **Mídia, Reels & Voz (TTS)**: Envio automatizado de Reels diários, comandos de imagens por IA e sintetizador de voz nos canais de voz (`!f`).
 
-## Requirements
+---
 
-- Node.js 20 or newer
-- A Discord bot token
-- An OpenAI API key
-- Optional: Stable Diffusion Forge WebUI running with `--api`
-- Optional: Google Cloud TTS credentials
+## 🏗️ Estrutura da Arquitetura
 
-## Setup
+O projeto é construído sobre uma arquitetura modular, onde cada responsabilidade é mantida em subpacotes isolados:
 
-Install dependencies:
+```text
+d:\BotTTs
+├── scripts/
+│   ├── admin/          # Permissões, superadmins e geradores de painéis
+│   ├── ai/             # Integração com OpenAI e Gemini
+│   ├── app/            # Inicialização do client e roteamento de eventos
+│   ├── core/           # Configurações, storage, utilitários e resolvers
+│   ├── economy/        # Banco, loja, mercado, forja, bolsas e inventário
+│   ├── features/       # Auto roles, boas-vindas, menu hub, reels, faq, família
+│   ├── games/          # Duelos, assaltos, prisão, boss, forca e RPG
+│   └── voice/          # Sintetizador de áudio e gerenciamento de chamadas
+├── data/               # Banco de dados baseado em JSON persistente
+├── tests/              # Suíte completa de 94 testes unitários e de integração
+├── .github/workflows/  # CI/CD Workflows para GitHub Actions
+└── index.js            # Ponto de entrada da aplicação
+```
 
-```powershell
+---
+
+## 🚀 Como Executar o Projeto
+
+### Pré-requisitos
+
+- **Node.js**: Versão `>= 18.0.0`
+- **npm**: Versão `>= 9.0.0`
+- **Bot no Discord**: Aplicação criada no [Discord Developer Portal](https://discord.com/developers/applications) com a intent **Server Members Intent (GUILD_MEMBERS)** ativada.
+
+### Instalação
+
+1. Clone o repositório:
+```bash
+git clone https://github.com/dreyvinixz/botTTs.git
+cd botTTs
+```
+
+2. Instale as dependências:
+```bash
 npm install
 ```
 
-Create your local environment file:
-
-```powershell
-Copy-Item examples/.env.example .env
+3. Configure as Variáveis de Ambiente:
+Copie o arquivo `.env.example` para `.env` e preencha suas credenciais:
+```bash
+cp .env.example .env
 ```
 
-Edit `.env` and set at least:
-
-```env
-DISCORD_TOKEN=your_discord_bot_token
-AI_PROVIDER=openai
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-4.1-mini
+4. Execute a suíte de testes locais:
+```bash
+npm test
 ```
 
-Run the bot:
-
-```powershell
+5. Inicie a aplicação:
+```bash
 npm start
 ```
 
-## Commands
+---
 
-| Command | Purpose |
-| --- | --- |
-| `!help` | Show command list. |
-| `!new` | Show latest bot updates. |
-| `!saldo` | Check your Nanacoins balance. |
-| `!rank` | View the global richest players. |
-| `!roubar @user` | Try to steal Nanacoins (risks going to prison). |
-| `!inventario` / `!inv` | View items, weapons, and equipped weapon. |
-| `!equipar <weaponId>` | Equip one weapon from your inventory. |
-| `!bolsa` | Open the centralized market UI for buying, selling, trade, and history. |
-| `!games` | Open the game hub for Hangman, Multiverse/Trivia, and Duels. |
-| `!loja` | Open boosts, items, lootboxes, and market shortcuts. |
-| `!fliperama` / `!lootbox` | Shortcut to open lootboxes. |
-| `!nana <text>` | Casual/persona LLM response. |
-| `!question <question>` | Serious professional answer. |
-| `!img <prompt>` | Generate a realistic image. |
-| `!anime <prompt>` | Generate an anime-style image. |
-| `!f <text>` | Speak in your current voice channel. |
+## 🧪 Testes Automatizados
 
-The bot also responds when mentioned or when users say `nana` / `botbanana` as separate words.
+O projeto conta com **94 testes unitários e de integração** validados em pipeline de CI:
 
-## Serious Question Mode
+- **Executar todos os testes:** `npm test`
+- **Executar verificação de sintaxe:** `npm run check`
+- **Executar teste de validação de lançamento:** `node --test tests/release_validation.test.js`
 
-`!question` is intentionally separated from the casual persona.
+---
 
-Use OpenAI:
+## 📜 Licença
 
-```env
-AI_PROVIDER=openai
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-4.1-mini
-```
+Este projeto está sob a licença [MIT](LICENSE).
 
-Gemini CLI is still available as a legacy fallback with `AI_PROVIDER=gemini_cli`, but the recommended provider is OpenAI.
+---
 
-Terminal logs show provider choice, latency, and token usage for each `!question`.
-
-## Image Generation
-
-Forge must be running with API enabled.
-
-From the bundled Forge directory:
-
-```powershell
-cd stable-diffusion-webui-forge
-.\webui-user.bat
-```
-
-The default API endpoint is:
-
-```env
-FORGE_HOST=http://127.0.0.1:7860
-```
-
-Image prompt behavior is configured by:
-
-```text
-data/policies/politicas_imagem.txt
-```
-
-Forge model names, image size, steps, sampler, and negative prompts are configured through `.env`.
-
-## Voice
-
-Voice commands use Microsoft Edge TTS by default:
-
-```env
-EDGE_TTS_VOICE=pt-BR-AntonioNeural
-VOICE_IDLE_TIMEOUT_MS=300000
-```
-
-The bot stays in voice for the idle timeout after the last speech, then disconnects automatically.
-
-Google Cloud TTS can be enabled by setting:
-
-```env
-GOOGLE_APPLICATION_CREDENTIALS=local/secrets/google_credentials.json
-```
-
-## Runtime Data
-
-Runtime files are stored under:
-
-```text
-data/
-```
-
-Default files:
-
-- `data/gifs.json`
-- `data/fofocas.json`
-- `data/economia.json`
-- `data/inventory.json`
-- `data/timers.json`
-- `data/media/`
-- `data/policies/`
-
-These files are local runtime state and should not contain source code configuration.
-
-## Project Structure
-
-- `index.js` - process entrypoint.
-- `package.json` - npm scripts and dependencies.
-- `scripts/app/` - Discord client and command router.
-- `scripts/admin/` - superadmin commands and permission checks.
-- `scripts/ai/` - chat, questions, images, and AI provider integrations.
-- `scripts/core/` - config, storage, random helpers, UI builders, services, and shared utils.
-- `scripts/economy/` - Nanacoins, inventory, boosts, lootboxes, and arcade rewards.
-- `scripts/games/` - Forca, RPG/Trivia, duels, boss events, menus, and game data loaders.
-- `scripts/voice/` - TTS and voice-channel handling.
-- `scripts/features/` - small engagement features.
-- `data/config/` and `data/games/` - editable static config and game data.
-- `data/policies/` - local persona and image policy files.
-- `local/` - ignored machine-local files and secrets.
-- `tools/` - manual utilities and local startup scripts.
-- `examples/` - public templates for local files.
-- `tests/` - `node:test` coverage for config, permissions, economy, games, and interactions.
-
-## Policy Files
-
-The bot reads policy/persona files at runtime:
-
-- `data/policies/politicas.txt` for general chat/persona behavior
-- `data/policies/politicas_imagem.txt` for image-prompt behavior only
-
-These files are intentionally separate so image prompting can be tuned without changing chat behavior.
-
-## Response Frequency
-
-Spontaneous replies are controlled by `.env`:
-
-```env
-CHANCE_RESPONDER_PERGUNTA=0.12
-CHANCE_RESPONDER_CASUAL=0.003
-CHANCE_RESPONDER_MIDIA=0.10
-COOLDOWN_USUARIO_MS=120000
-COOLDOWN_CANAL_MS=60000
-```
-
-Mentions still respond immediately. Non-mentioned messages are intentionally quiet by default.
-
-## Development
-
-Check syntax:
-
-```powershell
-npm run check
-```
-
-Run:
-
-```powershell
-npm start
-```
-
-Run the manual Trivia/AI diagnostic:
-
-```powershell
-npm run test:trivia
-```
-
-## Security Notes
-
-Never commit `.env`, `local/`, Discord tokens, API keys, Google credentials, or generated media.
-
-Use `examples/.env.example` as the public template and keep local secrets in `.env`.
+Desenvolvido por **[dreyvinixz](https://github.com/dreyvinixz)** & **Comunidade Caberé**.

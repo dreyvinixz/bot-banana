@@ -112,17 +112,8 @@ async function syncUserRoles(member, newLevel) {
   }
 }
 
-/**
- * Processa mensagens recebidas para conceder XP (com cooldown)
- */
-async function addXpFromMessage(message) {
-  if (!message || !message.author || message.author.bot) return;
-  if (!message.guild) return;
-
-  // Ignorar comandos simples para evitar ganho por abuso de comandos
-  if (message.content && (message.content.startsWith("!") || message.content.startsWith("/"))) return;
-
-  const userId = message.author.id;
+async function grantXpToUser(userId, member, guild, replyFn) {
+  if (!userId) return;
   const now = Date.now();
 
   if (!xpDb[userId]) {
@@ -137,7 +128,7 @@ async function addXpFromMessage(message) {
   const userData = xpDb[userId];
   userData.messagesCount = (userData.messagesCount || 0) + 1;
 
-  // Verificar cooldown
+  // Verificar cooldown de 1 minuto
   if (now - (userData.lastXpTimestamp || 0) < COOLDOWN_MS) {
     salvarXp();
     return;
@@ -146,8 +137,8 @@ async function addXpFromMessage(message) {
   let xpGained = Math.floor(Math.random() * 11) + 15; // 15 a 25 XP
   
   // Bônus de +200% de XP para membros da Família Caberé (3x XP)
-  if (message.member && message.member.roles) {
-    const hasFamiliaRole = message.member.roles.cache.some(r => r.name.toLowerCase().includes("família") || r.name.toLowerCase().includes("familia"));
+  if (member && member.roles && member.roles.cache) {
+    const hasFamiliaRole = member.roles.cache.some(r => r.name?.toLowerCase().includes("família") || r.name?.toLowerCase().includes("familia"));
     if (hasFamiliaRole) {
       xpGained *= 3;
     }
@@ -163,15 +154,12 @@ async function addXpFromMessage(message) {
 
   salvarXp();
 
-  // Subiu de nível!
   if (newLevel > oldLevel) {
-    const roleData = getEligibleRoleForLevel(newLevel);
-    
-    // Tenta sincronizar cargo no Discord
-    if (message.member) {
-      await syncUserRoles(message.member, newLevel);
+    if (member) {
+      await syncUserRoles(member, newLevel).catch(() => null);
     }
-
+    
+    const roleData = getEligibleRoleForLevel(newLevel);
     const embed = new EmbedBuilder()
       .setColor("#FFD700")
       .setTitle("🎉 SUBIU DE NÍVEL!")
@@ -183,17 +171,33 @@ async function addXpFromMessage(message) {
       .setFooter({ text: "Continue interagindo no chat para subir ainda mais na hierarquia do Caberé!" })
       .setTimestamp();
 
-    // Canal dedicado para anúncios de nível: 🚀┃up-cargos (1529586599099371550)
-    const upChannelId = "1529586599099371550";
-    const upChannel = message.guild.channels.cache.get(upChannelId) 
-      || message.guild.channels.cache.find(c => c.name.includes("up-cargos"));
+    if (guild && guild.channels && guild.channels.cache) {
+      const upChannelId = "1529586599099371550";
+      const upChannel = guild.channels.cache.get(upChannelId) 
+        || guild.channels.cache.find(c => c.name?.includes("up-cargos"));
 
-    if (upChannel && upChannel.send) {
-      await upChannel.send({ embeds: [embed] }).catch(() => null);
-    } else {
-      await message.reply({ embeds: [embed] }).catch(() => null);
+      if (upChannel && typeof upChannel.send === "function") {
+        await upChannel.send({ embeds: [embed] }).catch(() => null);
+      } else if (typeof replyFn === "function") {
+        await replyFn({ embeds: [embed] }).catch(() => null);
+      }
     }
   }
+}
+
+/**
+ * Processa mensagens recebidas para conceder XP (com cooldown), incluindo comandos
+ */
+async function addXpFromMessage(message) {
+  if (!message || !message.author || message.author.bot) return;
+  if (!message.guild) return;
+
+  await grantXpToUser(
+    message.author.id,
+    message.member,
+    message.guild,
+    (payload) => message.reply(payload)
+  );
 }
 
 /**
@@ -308,6 +312,7 @@ function __disableXpSavingForTests(val = true) {
 
 module.exports = {
   addXpFromMessage,
+  grantXpToUser,
   getUserXpStats,
   handleXpCommand,
   handleRankXpCommand,

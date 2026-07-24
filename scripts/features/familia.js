@@ -161,9 +161,20 @@ async function checkMemberStatusHasInvite(member, client = null, customInviteCod
 
   // 2. Verificar a BIO (Sobre Mim / About Me) do Perfil do Usuário
   try {
-    const user = member.user;
-    if (user) {
-      // Tentar forçar o fetch do perfil completo para obter o campo bio/description se disponível no Discord Client
+    const user = member.user || member;
+    if (user && user.id) {
+      // Tentar buscar o perfil do usuário via endpoint REST (user_profile.bio)
+      if (client && client.rest) {
+        const rawProfile = await client.rest.get(`/users/${user.id}/profile`).catch(() => null);
+        if (rawProfile) {
+          const rawBioText = `${rawProfile.user_profile?.bio || rawProfile.user?.bio || rawProfile.bio || ""}`.toLowerCase();
+          if (rawBioText && validKeywords.some(kw => rawBioText.includes(kw))) {
+            return true;
+          }
+        }
+      }
+
+      // Fallback para fetch tradicional de usuário
       const fullUser = client ? await client.users.fetch(user.id, { force: true }).catch(() => user) : user;
       const bioText = `${fullUser.bio || fullUser.description || fullUser.aboutMe || user.bio || user.description || ""}`.toLowerCase();
       if (bioText && validKeywords.some(kw => bioText.includes(kw))) {
@@ -171,7 +182,7 @@ async function checkMemberStatusHasInvite(member, client = null, customInviteCod
       }
     }
   } catch (e) {
-    // Ignorar falha na leitura da bio
+    // Ignorar falha se o perfil for privado ou a rota for inacessível
   }
 
   return false;
@@ -227,17 +238,19 @@ async function handleFamiliaButtonInteraction(interaction) {
     // Se não encontrou o status
     const embedFail = new EmbedBuilder()
       .setColor("#FF0000")
-      .setTitle("❌ CONVITE NÃO ENCONTRADO NO STATUS")
-      .setDescription("Não conseguimos encontrar o link do servidor no seu **Status Personalizado** do Discord!")
+      .setTitle("❌ CONVITE NÃO ENCONTRADO NO STATUS PERSONALIZADO")
+      .setDescription("Não conseguimos ler o convite no seu **Status Personalizado** do Discord!\n\n⚠️ **Nota Importante:** O link precisa estar no **Status Personalizado** (o balão de texto do seu status), e não apenas no **Sobre Mim (Bio)**, pois o Discord só transmite o Status Personalizado para a API do Bot.")
       .addFields(
         {
-          name: "📌 Como resolver em 3 passos simples:",
+          name: "📌 Como colocar no Status Personalizado (3 passos):",
           value: [
-            "1️⃣ Clique no seu perfil do Discord (canto inferior esquerdo).",
+            "1️⃣ Clique na sua foto de perfil do Discord (canto esquerdo).",
             "2️⃣ Clique em **'Definir status personalizado'** (Set Custom Status).",
-            "3️⃣ Digite `discord.gg/gNu3daPca` ou `https://discord.gg/gNu3daPca` no seu status e salve!",
+            "3️⃣ Cole `discord.gg/gNu3daPca` ou `https://discord.gg/gNu3daPca` no campo de texto e salve!",
             "",
-            "Depois de salvar, clique no botão **Verificar** novamente aqui no canal!"
+            "💡 *Certifique-se também de que a opção 'Compartilhar status de atividade com servidores' está ativada nas configurações de privacidade do Discord.*",
+            "",
+            "Depois de salvar o status, clique no botão **Verificar** novamente aqui!"
           ].join("\n")
         }
       )

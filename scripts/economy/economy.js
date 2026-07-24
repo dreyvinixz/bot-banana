@@ -127,8 +127,15 @@ async function handleDoarCommand(message, text) {
     .setTimestamp()
     .setFooter({ text: 'Banco Central Nanacoin - Transação Autorizada' });
 
-  return message.reply({ embeds: [receiptEmbed] });
-}
+    const { recordDonationSent, checkMilionarioRole, checkMaoDeVacaRole } = require("../features/autoRoles");
+    recordDonationSent(message.author.id);
+    if (message.member) {
+      checkMilionarioRole(message.member, getCoins(message.author.id));
+      checkMaoDeVacaRole(message.member, getCoins(message.author.id));
+    }
+
+    return message.reply({ embeds: [receiptEmbed] });
+  }
 
 function formatCoins(amount) {
   if (amount >= 1000) {

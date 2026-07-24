@@ -276,6 +276,12 @@ async function handleBoostInteraction(interaction) {
   }
   recordLedgerEvent("shop_buy", { userId, itemId: choice, price: dynPrice, amount: 1 });
 
+  const { recordShopPurchase, checkMaoDeVacaRole } = require("../features/autoRoles");
+  recordShopPurchase(userId);
+  if (interaction.member) {
+    checkMaoDeVacaRole(interaction.member, getCoins(userId));
+  }
+
   // Aplica o boost na memória ou adiciona item
   if (boostConfig.type === 'game') {
     gameBoosts.set(userId, {
@@ -298,6 +304,9 @@ async function handleBoostInteraction(interaction) {
   } else if (boostConfig.type === 'item' || boostConfig.type === 'material') {
     const { addItem } = require("./inventory");
     addItem(userId, choice, 1);
+  } else if (boostConfig.type === 'parrudo') {
+    const { activateParrudo } = require("../games/duel");
+    activateParrudo(userId, boostConfig.hours || 1);
   } else if (boostConfig.type === 'spawnBoss' || boostConfig.type === 'spawnMiniBoss') {
     const { spawnWorldBoss, spawnMiniBoss } = require("../games/boss");
     const { resetBossTimer } = require("../games/forca");
@@ -320,7 +329,7 @@ async function handleBoostInteraction(interaction) {
   });
 
   // Avisa publicamente no canal
-  const channel = interaction.client.channels.cache.get(interaction.channelId);
+  const channel = interaction.client?.channels?.cache?.get(interaction.channelId);
   if (channel) {
     channel.send(`🚀 **ALERTA DE BOOST!** O(A) jogador(a) **${interaction.user.username}** acaba de ativar um **${boostConfig.label}**! O mercado de Nanacoins está aquecido!`);
   }

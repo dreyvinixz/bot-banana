@@ -20,19 +20,24 @@ const { handleReelsCommand, handleReelsInteraction } = require("../features/reel
 const { handleAdminCommand } = require("../admin/admin");
 const { startVideoScheduler } = require("../core/videoScheduler");
 const { handleFaqMessage } = require("../features/faq");
-const { addXpFromMessage, handleXpCommand, handleRankXpCommand } = require("../features/xp");
+const { addXpFromMessage, grantXpToUser, handleXpCommand, handleRankXpCommand } = require("../features/xp");
 const { handleMemberJoin, handleWelcomeTestCommand } = require("../features/welcome");
+const { handleMenuCommand, handleMenuInteraction } = require("../features/menuHub");
+const { recordActivityMessage, addVoiceTime } = require("../features/autoRoles");
 
 function createClient() {
-  return new Client({
-    intents: [
-      GatewayIntentBits.Guilds,
-      GatewayIntentBits.GuildVoiceStates,
-      GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent,
-      GatewayIntentBits.GuildMembers
-    ]
-  });
+  const intents = [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ];
+
+  if (config.ENABLE_GUILD_MEMBERS_INTENT) {
+    intents.push(GatewayIntentBits.GuildMembers);
+  }
+
+  return new Client({ intents });
 }
 
 function buildHelpEmbed() {
@@ -50,15 +55,12 @@ function buildHelpEmbed() {
         '`!saldo` - 💵 Verifica quanto dinheiro virtual você tem.',
         '`!rank` - 🏆 Mostra os mais ricos do servidor.',
         '`!doar <@user> <valor>` - 💸 Transfere Nanacoins simples.',
-        '`!loja` - 🏪 Loja Oficial com **estoque virtual**, preços dinâmicos e **Lootboxes**.',
-        '`!bolsa` - 📈 Bolsa de Valores real: compre, venda e lucre com especulação!',
-        '`!raid` - ⚔️ Raid de Servidores: guerra econômica controlada.',
-        '`!inventario` / `!inv` - 🎒 Mostra itens, armas e acesso completo à **Forja**!',
-        '`!armas` - ⚙️ Abre direto o craft de armas da Forja.'
+        '`!loja` - 🏪 Loja Oficial com **Proteção Parrudo**, **estoque virtual** e **Lootboxes**.',
+        '`!menu` / `!hub` / `!painel` - 🍌 **Painel Central** com botões interativos para todas as áreas!'
       ].join('\n') },
       { name: '⚔️ Crime & Duelo', value: [
         '`!roubar <@user>` - 🥷 Tenta furtar Nanacoins de alguém.',
-        '`!parrudo <horas>h` - 🛡️ Imunidade a roubos. Ladrões sofrem dano se atacarem sem Ácido!',
+        '`!parrudo <horas>h` - 🛡️ Imunidade a roubos (também comprável na `!loja`).',
         '`!timeout` - 🚓 Verifica tempo de prisão.',
         '`!fianca [@user]` - 💸 Paga fiança para sair ou soltar amigo.',
         '`!beijarmuro` - 💋 Beija o muro e testa sua sorte.'
@@ -188,6 +190,7 @@ async function handleMessage(message) {
   checkAndSpawnEvent(message);
   checkAndSendTip(message);
   addXpFromMessage(message);
+  recordActivityMessage(message.author.id, message.member);
 
   if (isPrisioneiro(message.author.id) && isCommand(message, ["!roubar", "!games"])) {
     return message.reply("🚓 Você está na prisão! Presidiários não podem jogar, duelar ou roubar.");
@@ -207,6 +210,10 @@ async function handleMessage(message) {
 
   if (isCommand(message, ["!boasvindas", "!welcome", "!simularboasvindas"])) {
     return handleWelcomeTestCommand(message);
+  }
+
+  if (isCommand(message, ["!menu", "!hub", "!painel", "!menuprincipal"])) {
+    return handleMenuCommand(message);
   }
 
   if (isCommand(message, ["!help"])) {
@@ -403,6 +410,11 @@ function start(options = {}) {
     scheduleExistingRaids(client);
     startVideoScheduler(client);
     
+    if (!testMode) {
+      const { sendStartupAnnouncement } = require("../admin/admin");
+      sendStartupAnnouncement(client).catch(() => null);
+    }
+
     console.log("✨ Tudo pronto! O BotTTs já está escutando comandos.");
   });
 
@@ -419,8 +431,44 @@ function start(options = {}) {
     });
   });
 
+  const voiceSessions = new Map();
+  client.on("voiceStateUpdate", (oldState, newState) => {
+    try {
+      const member = newState.member || oldState.member;
+      if (!member || member.user.bot) return;
+
+      const userId = member.id;
+      const now = Date.now();
+
+      // Entrou num canal de voz (ou estava sem entrar e conectou)
+      if (!oldState.channelId && newState.channelId) {
+        voiceSessions.set(userId, now);
+      }
+      // Saiu de um canal de voz
+      else if (oldState.channelId && !newState.channelId) {
+        if (voiceSessions.has(userId)) {
+          const startTime = voiceSessions.get(userId);
+          voiceSessions.delete(userId);
+          const duration = now - startTime;
+          addVoiceTime(userId, member, duration).catch(() => null);
+        }
+      }
+    } catch (err) {
+      console.error("🔥 Erro inesperado no voiceStateUpdate:", err);
+    }
+  });
+
   client.on("interactionCreate", async (interaction) => {
     try {
+      if (interaction.user && !interaction.user.bot) {
+        grantXpToUser(
+          interaction.user.id,
+          interaction.member,
+          interaction.guild,
+          (payload) => interaction.followUp?.(payload) || interaction.reply?.(payload)
+        ).catch(() => null);
+      }
+
       if (testMode && interaction.channelId !== testChannelId) {
         if (interaction.isRepliable?.()) {
           await interaction.reply({ content: "🧪 Este bot de teste só responde no canal de testes.", flags: MessageFlags.Ephemeral }).catch(() => null);
@@ -504,6 +552,7 @@ function start(options = {}) {
 
       const { handleFamiliaButtonInteraction } = require("../features/familia");
       if (await handleFamiliaButtonInteraction(interaction)) return;
+      if (await handleMenuInteraction(interaction)) return;
 
       if (await handleEventInteraction(interaction)) return;
       if (await handleForcaThemeInteraction(interaction)) return;

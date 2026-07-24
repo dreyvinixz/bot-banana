@@ -284,6 +284,42 @@
       "menuLabel": "Boost Boss 2x",
       "description": "Dobra todos os itens materiais dropados do próximo World Boss derrotado! (Consumido) - 2k",
       "emoji": "🐉"
+    },
+    "parrudo_1h": {
+      "type": "parrudo",
+      "hours": 1,
+      "cost": 250,
+      "label": "Proteção Parrudo 1h",
+      "menuLabel": "Proteção Parrudo (1h)",
+      "description": "Fica imune a roubos por 1 hora completa - 250 Nanacoins",
+      "emoji": "🛡️"
+    },
+    "parrudo_2h": {
+      "type": "parrudo",
+      "hours": 2,
+      "cost": 500,
+      "label": "Proteção Parrudo 2h",
+      "menuLabel": "Proteção Parrudo (2h)",
+      "description": "Fica imune a roubos por 2 horas - 500 Nanacoins",
+      "emoji": "🛡️"
+    },
+    "parrudo_5h": {
+      "type": "parrudo",
+      "hours": 5,
+      "cost": 1000,
+      "label": "Proteção Parrudo 5h",
+      "menuLabel": "Proteção Parrudo (5h)",
+      "description": "Fica imune a roubos por 5 horas - 1.000 Nanacoins",
+      "emoji": "🛡️"
+    },
+    "parrudo_10h": {
+      "type": "parrudo",
+      "hours": 10,
+      "cost": 5000,
+      "label": "Proteção Parrudo 10h",
+      "menuLabel": "Proteção Parrudo (10h)",
+      "description": "Fica imune a roubos por 10 horas - 5.000 Nanacoins",
+      "emoji": "🛡️"
     }
   },
   "menuOrder": [
@@ -293,6 +329,10 @@
     "game_4x",
     "steal_10",
     "steal_20",
+    "parrudo_1h",
+    "parrudo_2h",
+    "parrudo_5h",
+    "parrudo_10h",
     "pe_coelho",
     "bomba_fumaca",
     "pe_cabra",
