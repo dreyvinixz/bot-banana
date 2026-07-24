@@ -30,92 +30,94 @@ const activeDuels = new Map();
 
 function handleBeijarMuroCommand(message) {
   const userId = message.author.id;
-  const now = Date.now();
-  const cooldown = 30 * 1000;
+  if (isPrisioneiro(userId)) {
+    return message.reply(`🚓 Você está na prisão e a parede da cela é fria demais para beijar.`);
+  }
 
   if (beijoCooldowns.has(userId)) {
     const expire = beijoCooldowns.get(userId);
-    if (now < expire) {
-      const sec = Math.ceil((expire - now) / 1000);
-      return message.reply(`🧱 Suas bocas ainda estão doloridas de beijar o muro! Espere **${sec}s** para beijar de novo.`);
+    if (Date.now() < expire) {
+      const mins = Math.ceil((expire - Date.now()) / 60000);
+      return message.reply(`👄 Seus lábios estão doendo! Espere **${mins} minutos** para usar o comando de novo.`);
     }
   }
 
-  beijoCooldowns.set(userId, now + cooldown);
+  const isTestChannel = message.channel && message.channel.id === '1348716118981742592';
+  const kissCooldown = isTestChannel ? 10 * 1000 : (config.static?.app?.duel?.kissCooldownMs || 600000);
+  beijoCooldowns.set(userId, Date.now() + kissCooldown);
 
-  const WIN_GIF = "https://tenor.com/view/magic-smile-wink-80s-cartoon-gif-16965463.gif";
-  const LOSS_GIF = "https://tenor.com/view/omg-what-no-way-emoji-shock-gif-24390671.gif";
+  const { hasItem, removeItem } = require("../economy/inventory");
+  const hasCoelho = hasItem(userId, 'pe_coelho') || hasItem(userId, 'pe_de_coelho');
+  const embeds = [];
 
-  let usedRabbitFoot = false;
-  if (hasItem(userId, "pe_coelho") || hasItem(userId, "pe_de_coelho")) {
-    const rabbitItem = hasItem(userId, "pe_coelho") ? "pe_coelho" : "pe_de_coelho";
-    removeItem(userId, rabbitItem, 1);
-    usedRabbitFoot = true;
+  if (hasCoelho) {
+    const itemKey = hasItem(userId, 'pe_coelho') ? 'pe_coelho' : 'pe_de_coelho';
+    removeItem(userId, itemKey, 1);
+    const coelhoEmbed = new EmbedBuilder()
+      .setColor('#FFFFFF')
+      .setTitle('🐰 PÉ DE COELHO!')
+      .setDescription(`A sorte está ao lado de **${message.author.username}** neste beijo! (Imune a cadeia/azar)`);
+    embeds.push(coelhoEmbed);
   }
 
-  // Se usou Pé de Coelho, ganha direto o Jackpot de 1000
-  if (usedRabbitFoot) {
-    const gain = 1000;
-    addCoins(userId, gain);
+  const rng = hasCoelho ? Math.random() * 0.49 : Math.random();
+  const gifBom = "https://media.giphy.com/media/Pk3ljzIDb4R0j3zpMU/giphy.gif";
+  const gifRuim = "https://media.giphy.com/media/RbAJaIKpGMQLlciHnn/giphy.gif";
 
-    const embed = new EmbedBuilder()
-      .setColor('#FF1493')
-      .setTitle('🐰 BEIJO DA SORTE SUPREMA (PÉ DE COELHO)!')
-      .setDescription(`**${message.author.username}**, seu Pé de Coelho evitou todo o azar do muro e te garantiu o prêmio máximo!`)
-      .addFields({ name: '💰 Prêmio Máximo', value: `**+ ${gain} Nanacoins 🪙**` })
-      .setImage(WIN_GIF)
-      .setFooter({ text: 'A zoeira não tem limites no Caberé.' });
+  const resultEmbed = new EmbedBuilder();
 
-    return message.reply({ embeds: [embed] });
-  }
-
-  const roll = integerBetween(1, 100);
-
-  // 15% de chance de Jackpot (1000 coins)
-  if (roll <= 15) {
-    const gain = 1000;
-    addCoins(userId, gain);
-
-    const embed = new EmbedBuilder()
-      .setColor('#FFD700')
-      .setTitle('🎰 BEIJO DA SORTE SUPREMA!')
-      .setDescription(`**${message.author.username}**, você beijou o muro e achou o TESOURO ESCONDIDO de 1000 moedas no tijolo!`)
-      .addFields({ name: '💰 Prêmio Especial', value: `**+ ${gain} Nanacoins 🪙**` })
-      .setImage(WIN_GIF)
-      .setFooter({ text: 'A zoeira não tem limites no Caberé.' });
-
-    return message.reply({ embeds: [embed] });
-  }
-
-  // 60% de chance de Ganho normal (200 a 700 coins)
-  if (roll <= 75) {
-    const gain = integerBetween(200, 700);
-    addCoins(userId, gain);
-
-    const embed = new EmbedBuilder()
-      .setColor('#FF1493')
+  if (rng < 0.25) {
+    const { getGameMultiplier } = require("../economy/boosts");
+    const mult = getGameMultiplier ? getGameMultiplier(userId) : 1;
+    const baseReward = config.static?.app?.duel?.kissRewards?.big || 600;
+    const premio = baseReward * mult;
+    addCoins(userId, premio);
+    resultEmbed.setColor('#FFD700') // Dourado
       .setTitle('💋 BEIJO DA SORTE GRANDE!')
-      .setDescription(`**${message.author.username}**, você beijou o muro com paixão e encontrou um tesouro escondido!`)
-      .addFields({ name: '💰 Prêmio', value: `**+ ${gain} Nanacoins 🪙**` })
-      .setImage(WIN_GIF)
-      .setFooter({ text: 'A zoeira não tem limites no Caberé.' });
-
-    return message.reply({ embeds: [embed] });
+      .setDescription('Você beijou o muro com paixão e encontrou um tesouro escondido!')
+      .addFields({ name: '💰 Prêmio', value: `\`+ ${premio} Nanacoins\`` })
+      .setImage(gifBom);
+  } else if (rng < 0.50) {
+    const { getGameMultiplier } = require("../economy/boosts");
+    const mult = getGameMultiplier ? getGameMultiplier(userId) : 1;
+    const baseReward = config.static?.app?.duel?.kissRewards?.small || 250;
+    const premio = baseReward * mult;
+    addCoins(userId, premio);
+    resultEmbed.setColor('#FFFF00') // Amarelo
+      .setTitle('💋 BEIJO DA SORTE!')
+      .setDescription('Você deu um beijinho no muro e achou uma carteira caída no chão!')
+      .addFields({ name: '💰 Prêmio', value: `\`+ ${premio} Nanacoins\`` })
+      .setImage(gifBom);
+  } else if (rng < 0.75) {
+    const smallPenalty = config.static?.app?.duel?.kissRewards?.smallPenalty || 100;
+    const penalty = Math.min(getCoins(userId), smallPenalty);
+    if (penalty > 0) removeCoins(userId, penalty);
+    resultEmbed.setColor('#FFA500') // Laranja
+      .setTitle('🧱💥 BATEU A CARA!')
+      .setDescription('O muro revidou! Você quebrou um dente e deixou cair moedas do bolso.')
+      .addFields({ name: '🩸 Perda', value: `\`- ${penalty} Nanacoins\`` })
+      .setImage(gifRuim);
+  } else if (rng < 0.90) {
+    const bigPenalty = config.static?.app?.duel?.kissRewards?.bigPenalty || 200;
+    const penalty = Math.min(getCoins(userId), bigPenalty);
+    if (penalty > 0) removeCoins(userId, penalty);
+    resultEmbed.setColor('#8B0000') // Vermelho Escuro
+      .setTitle('🤢 QUE NOJO!')
+      .setDescription('Você beijou a boca de uma barata que estava no muro. A consulta no posto custou caro!')
+      .addFields({ name: '💸 Despesas Médicas', value: `\`- ${penalty} Nanacoins\`` })
+      .setImage(gifRuim);
+  } else {
+    const jailMins = config.static?.app?.duel?.kissJailMinutes || 5;
+    prenderUsuario(userId, jailMins);
+    resultEmbed.setColor('#FF0000') // Vermelho
+      .setTitle('🚓🚨 PEGO NO ATO!')
+      .setDescription('A polícia passou na hora, achou que você estava vandalizando o muro e te levou preso!')
+      .addFields({ name: '⚖️ Sentença', value: `${jailMins} minutos de cadeia.` })
+      .setImage(gifRuim);
   }
 
-  // 25% de chance de Perda (100 a 300 coins)
-  const loss = integerBetween(100, 300);
-  removeCoins(userId, loss);
-
-  const embed = new EmbedBuilder()
-    .setColor('#FF0000')
-    .setTitle('💥 O MURO DEU O TROCO!')
-    .setDescription(`**${message.author.username}**, você beijou o muro de mau jeito, bateu a cara e teve que pagar o dentista!`)
-    .addFields({ name: '💸 Prejuízo', value: `**- ${loss} Nanacoins 🪙**` })
-    .setImage(LOSS_GIF)
-    .setFooter({ text: 'A zoeira não tem limites no Caberé.' });
-
-  return message.reply({ embeds: [embed] });
+  embeds.push(resultEmbed);
+  return message.reply({ embeds });
 }
 
 function handleParrudoCommand(message) {
