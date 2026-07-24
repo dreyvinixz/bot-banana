@@ -1,0 +1,30 @@
+name: CD Deployment Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+
+jobs:
+  deploy:
+    name: Deploy to Production VPS
+    runs-on: ubuntu-latest
+    needs: [] # Opcional: pode depender da job de teste se configurado no mesmo arquivo ou pipeline
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH (VPS / PM2 / Docker)
+        uses: appleboy/ssh-action@v1.0.3
+        if: ${{ secrets.VPS_HOST != '' }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            cd /var/www/bot-banana || cd ~/bot-banana
+            git pull origin main
+            npm ci --only=production
+            pm2 restart ecosystem.config.js --env production || docker-compose up -d --build

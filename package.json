@@ -1,7 +1,7 @@
 {
-  "name": "bottts",
+  "name": "bot-banana",
   "version": "1.0.0",
-  "description": "",
+  "description": "BotBanana — Discord Bot Framework modular para economia, gamificação, auto-roles, mini-games e IA.",
   "main": "index.js",
   "scripts": {
     "start": "node .",
@@ -12,16 +12,22 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dreyvinixz/botTTs.git"
+    "url": "git+https://github.com/dreyvinixz/bot-banana.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "discord-bot",
+    "discord-js",
+    "bot-banana",
+    "gamification",
+    "economy-bot"
+  ],
+  "author": "dreyvinixz",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/dreyvinixz/botTTs/issues"
+    "url": "https://github.com/dreyvinixz/bot-banana/issues"
   },
-  "homepage": "https://github.com/dreyvinixz/botTTs#readme",
+  "homepage": "https://github.com/dreyvinixz/bot-banana#readme",
   "dependencies": {
     "@discordjs/voice": "^0.19.0",
     "@google-cloud/text-to-speech": "^6.2.0",

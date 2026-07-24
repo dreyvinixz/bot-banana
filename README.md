@@ -1,7 +1,7 @@
-# 🍌 BotBanana (BotTTs) — Discord Bot Framework
+# 🍌 BotBanana (`bot-banana`) — Discord Bot Framework
 
-[![CI Pipeline](https://github.com/dreyvinixz/botTTs/actions/workflows/ci.yml/badge.svg)](https://github.com/dreyvinixz/botTTs/actions/workflows/ci.yml)
-[![CodeQL Security](https://github.com/dreyvinixz/botTTs/actions/workflows/codeql.yml/badge.svg)](https://github.com/dreyvinixz/botTTs/actions/workflows/codeql.yml)
+[![CI Pipeline](https://github.com/dreyvinixz/bot-banana/actions/workflows/ci.yml/badge.svg)](https://github.com/dreyvinixz/bot-banana/actions/workflows/ci.yml)
+[![CodeQL Security](https://github.com/dreyvinixz/bot-banana/actions/workflows/codeql.yml/badge.svg)](https://github.com/dreyvinixz/bot-banana/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
 [![Discord.js Version](https://img.shields.io/badge/discord.js-v14.21.0-blue.svg)](https://discord.js.org)
@@ -29,7 +29,7 @@ O **BotBanana** é uma aplicação completa e modular desenvolvida em Node.js e 
 O projeto é construído sobre uma arquitetura modular, onde cada responsabilidade é mantida em subpacotes isolados:
 
 ```text
-d:\BotTTs
+bot-banana/
 ├── scripts/
 │   ├── admin/          # Permissões, superadmins e geradores de painéis
 │   ├── ai/             # Integração com OpenAI e Gemini
@@ -93,6 +93,31 @@ O projeto conta com **94 testes unitários e de integração** validados em pipe
 - **Executar todos os testes:** `npm test`
 - **Executar verificação de sintaxe:** `npm run check`
 - **Executar teste de validação de lançamento:** `node --test tests/release_validation.test.js`
+
+---
+
+## 🚀 Deployments & Produção
+
+O **BotBanana** suporta múltiplos métodos de implantação em produção:
+
+### 1. Docker & Docker Compose (Recomendado)
+Execute a aplicação isolada em container com volumes para persistência de dados:
+```bash
+docker-compose up -d --build
+```
+
+### 2. PM2 Process Manager (Servidores Linux / VPS)
+Gerencie o processo em segundo plano com auto-restart e logs rotacionados:
+```bash
+# Instalar PM2 globalmente se necessário
+npm install -g pm2
+
+# Iniciar o bot via PM2
+pm2 start ecosystem.config.js --env production
+```
+
+### 3. GitHub Actions CD (Implantador Automático)
+O repositório inclui o workflow em `.github/workflows/deploy.yml`. Basta configurar os Secrets no seu repositório GitHub (`VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`) para que cada commit na branch `main` atualize seu servidor de produção automaticamente!
 
 ---
 
