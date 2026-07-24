@@ -18,6 +18,10 @@ async function handleGamesCommand(message) {
   const row = new ActionRowBuilder()
     .addComponents(
       new ButtonBuilder()
+        .setCustomId(`menu_btn_home_${userId}`)
+        .setLabel('🏠 Início')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
         .setCustomId(`games_menu_forca_${userId}`)
         .setLabel('🎮 Forca')
         .setStyle(ButtonStyle.Primary),

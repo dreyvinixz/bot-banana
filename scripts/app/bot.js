@@ -571,7 +571,9 @@ function start(options = {}) {
       }
 
       const { handleFamiliaButtonInteraction } = require("../features/familia");
+      const { handlePubliButtonInteraction } = require("../admin/setupPanels");
       if (await handleFamiliaButtonInteraction(interaction)) return;
+      if (await handlePubliButtonInteraction(interaction)) return;
       if (await handleMenuInteraction(interaction)) return;
 
       if (await handleEventInteraction(interaction)) return;

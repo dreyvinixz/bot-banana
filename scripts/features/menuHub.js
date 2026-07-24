@@ -19,11 +19,11 @@ function buildMenuEmbed(user) {
 
 function buildMenuComponents(ownerId) {
   const rowButtons = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`menu_btn_home_${ownerId}`).setLabel("🏠 Início").setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(`menu_btn_games_${ownerId}`).setLabel("🎮 Jogos").setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId(`menu_btn_loja_${ownerId}`).setLabel("🏪 Loja").setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId(`menu_btn_inv_${ownerId}`).setLabel("🎒 Inventário").setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`menu_btn_saldo_${ownerId}`).setLabel("💳 Saldo").setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`menu_btn_xp_${ownerId}`).setLabel("⚡ Meu XP").setStyle(ButtonStyle.Secondary)
+    new ButtonBuilder().setCustomId(`menu_btn_saldo_${ownerId}`).setLabel("💳 Saldo").setStyle(ButtonStyle.Secondary)
   );
 
   const rowSelect = new ActionRowBuilder().addComponents(
@@ -31,6 +31,7 @@ function buildMenuComponents(ownerId) {
       .setCustomId(`menu_select_${ownerId}`)
       .setPlaceholder("Navegar por categoria...")
       .addOptions([
+        { label: "🏠 Início / Menu Principal", value: "home", description: "Voltar para a tela inicial do Menu Central", emoji: "🏠" },
         { label: "🎮 Central de Jogos", value: "games", description: "Hub de Jogos: Forca, Trivia, Duelo e Lootboxes", emoji: "🎮" },
         { label: "🏪 Loja Oficial & Proteção Parrudo", value: "loja", description: "Compre Proteção Parrudo, boosts e consumíveis", emoji: "🏪" },
         { label: "🎒 Inventário & Forja", value: "inv", description: "Seus itens, armas e criação de equipamentos", emoji: "🎒" },
@@ -95,6 +96,11 @@ async function handleMenuInteraction(interaction) {
     },
     update: async (payload) => interaction.update(payload)
   };
+
+  if (action === "home") {
+    await handleMenuCommand(mockMessage);
+    return true;
+  }
 
   if (action === "games") {
     const { handleGamesCommand } = require("../games/menu");

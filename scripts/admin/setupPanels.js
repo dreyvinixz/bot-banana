@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
+const { EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const config = require("../core/config");
 const { requireSuperAdmin } = require("./adminAuth");
 
@@ -268,18 +268,148 @@ async function handleSetupAvisosCommand(interactionOrMessage) {
 
 async function handleSetupPubliCommand(interactionOrMessage) {
   const isMessage = !!interactionOrMessage.content;
+  if (!isMessage && !interactionOrMessage.deferred && !interactionOrMessage.replied) {
+    try { await interactionOrMessage.deferReply({ ephemeral: true }); } catch (e) {}
+  }
+
   const guild = interactionOrMessage.guild;
-  const channel = guild.channels.cache.find(c => c.name.includes("publi") || c.name.includes("divulgacao"));
-  if (!channel) return isMessage ? interactionOrMessage.reply("❌ Canal de publi não encontrado!") : interactionOrMessage.editReply("❌ Canal de publi não encontrado!");
+  let channel = guild.channels.cache.find(c => c.name.includes("publi") || c.name.includes("divulgacao") || c.name.includes("parceria"));
+  if (!channel) channel = interactionOrMessage.channel;
+  if (!channel) {
+    const errorMsg = "❌ Canal de publi/divulgação não encontrado!";
+    return isMessage ? interactionOrMessage.reply(errorMsg) : interactionOrMessage.editReply(errorMsg);
+  }
 
-  const embed = new EmbedBuilder()
-    .setColor("#00FF7F")
-    .setTitle("📣 Diretrizes de Publicidade & Parcerias — Caberé")
-    .setDescription("Espaço para divulgação de conteúdo e parcerias.")
-    .setFooter({ text: "Equipe Caberé" });
+  try {
+    const bannerPath = path.join(process.cwd(), "assets", "banner_kabare.png");
+    let files = [];
+    let hasBanner = false;
+    if (fs.existsSync(bannerPath)) {
+      files.push(new AttachmentBuilder(bannerPath, { name: "banner_kabare.png" }));
+      hasBanner = true;
+    }
 
-  await channel.send({ embeds: [embed] });
-  return isMessage ? interactionOrMessage.reply("✅ Canal de publi configurado!") : interactionOrMessage.editReply("✅ Canal de publi configurado!");
+    const embed = new EmbedBuilder()
+      .setColor("#00FF7F")
+      .setTitle("📣 CENTRAL DE PARCERIAS, REPOSTS & PUBLICIDADE — CABERÉ 🍌")
+      .setDescription("Seja bem-vindo à Central Oficial de Negócios e Parcerias do **Caberé**!\nAqui você encontra todas as diretrizes e formatos para promover seu canal, servidor ou marca na nossa comunidade.")
+      .addFields(
+        {
+          name: "🤝 1. Parcerias Comerciais & Entre Servidores",
+          value: [
+            "• **Requisitos**: Servidores ativos com público engajado;",
+            "• **Troca de Divulgação**: Anúncio nos canais oficiais de parcerias com menção `@here`;",
+            "• **Cargo Exclusivo**: Representante ganha o cargo **@Parceiro**."
+          ].join("\n")
+        },
+        {
+          name: "🎬 2. Reposts & Divulgação de Mídia",
+          value: [
+            "• **Redes Sociais**: Repostamos Reels, TikToks, Shorts e vídeos no nosso feed;",
+            "• **Lives & Transmissões**: Divulgação automatizada quando você entrar ao vivo na Twitch / YouTube;",
+            "• **Como solicitar**: Clique no botão **Solicitar Repost** abaixo ou envie seu link no chat de mídias."
+          ].join("\n")
+        },
+        {
+          name: "💼 3. Publicidade & Patrocínios (Publi)",
+          value: [
+            "• **Pings Exclusivos**: Anúncios com menção `@everyone` ou `@here`;",
+            "• **Sorteios Patrocinados**: Organização de sorteios com requisitos de entrada (seguir redes, entrar no servidor);",
+            "• **Espaço de Destaque**: Canais fixos e banners no topo da comunidade."
+          ].join("\n")
+        },
+        {
+          name: "📌 Como entrar em contato?",
+          value: "Escolha uma das opções nos botões abaixo ou envie uma mensagem direta para a nossa **Equipe de Administração**!"
+        }
+      )
+      .setFooter({ text: "© Caberé — BotBanana • Todos os direitos reservados." })
+      .setTimestamp();
+
+    if (hasBanner) embed.setImage("attachment://banner_kabare.png");
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("publi_parceria")
+        .setLabel("🤝 Propor Parceria")
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId("publi_repost")
+        .setLabel("🎬 Solicitar Repost")
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId("publi_patrocinio")
+        .setLabel("💼 Contratar Publi")
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    await channel.send({
+      content: "# 📢 Guia Oficial de Parcerias e Publicidade",
+      embeds: [embed],
+      components: [row],
+      files: files
+    });
+
+    const successMsg = `✅ Painel de Parcerias e Publi configurado com sucesso no canal <#${channel.id}>!`;
+    if (isMessage) await interactionOrMessage.reply(successMsg);
+    else await interactionOrMessage.editReply(successMsg);
+  } catch (error) {
+    console.error(error);
+    const errorMsg = "❌ Erro ao configurar canal de publi.";
+    if (isMessage) await interactionOrMessage.reply(errorMsg);
+    else await interactionOrMessage.editReply(errorMsg);
+  }
+}
+
+async function handlePubliButtonInteraction(interaction) {
+  if (!interaction.isButton()) return false;
+  const { customId } = interaction;
+  if (!["publi_parceria", "publi_repost", "publi_patrocinio"].includes(customId)) return false;
+
+  const { MessageFlags } = require("discord.js");
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  if (customId === "publi_parceria") {
+    const embed = new EmbedBuilder()
+      .setColor("#00FF7F")
+      .setTitle("🤝 Como propor uma Parceria Oficial")
+      .setDescription("Ficamos felizes com seu interesse em formar uma parceria com o **Caberé**!")
+      .addFields(
+        { name: "📌 Passos para solicitar:", value: "1. Garanta que seu servidor tem público ativo e engajado;\n2. Prepare o link de convite permanente do seu servidor;\n3. Envie uma mensagem direta para qualquer membro com cargo `@ADM` ou `@Dono`." }
+      )
+      .setFooter({ text: "Aguardamos seu contato!" });
+    await interaction.editReply({ embeds: [embed] });
+    return true;
+  }
+
+  if (customId === "publi_repost") {
+    const embed = new EmbedBuilder()
+      .setColor("#00BFFF")
+      .setTitle("🎬 Solicitação de Repost de Mídia")
+      .setDescription("Quer ter seu vídeo, Reel ou clipe compartilhado no nosso feed?")
+      .addFields(
+        { name: "📌 Como enviar seu conteúdo:", value: "1. Copie o link do seu vídeo (Instagram, TikTok, YouTube ou Reels);\n2. Use o comando `!reels` ou envie o link no chat de mídias;\n3. Nossa equipe selecionará os melhores conteúdos para repostar nas redes da comunidade!" }
+      )
+      .setFooter({ text: "Compartilhe seu talento com a comunidade!" });
+    await interaction.editReply({ embeds: [embed] });
+    return true;
+  }
+
+  if (customId === "publi_patrocinio") {
+    const embed = new EmbedBuilder()
+      .setColor("#FFD700")
+      .setTitle("💼 Publicidade & Patrocínios")
+      .setDescription("Divulgue sua marca, produto ou evento para milhares de membros ativos!")
+      .addFields(
+        { name: "📌 Formatos disponíveis:", value: "• Anúncios com ping `@everyone` ou `@here`;\n• Sorteios patrocinados com metas de engajamento;\n• Canais fixos e banners de destaque." },
+        { name: "📩 Contato Comercial:", value: "Fale diretamente com os administradores ou abra um ticket de suporte." }
+      )
+      .setFooter({ text: "Caberé Business" });
+    await interaction.editReply({ embeds: [embed] });
+    return true;
+  }
+
+  return false;
 }
 
 async function handleSetupCompeticoesCommand(interactionOrMessage) {
@@ -407,6 +537,7 @@ module.exports = {
   handleSetupCargosInfoCommand,
   handleSetupAvisosCommand,
   handleSetupPubliCommand,
+  handlePubliButtonInteraction,
   handleSetupCompeticoesCommand,
   handleSetupCaixaInfoCommand,
   handleSetupReviewsCommand,
