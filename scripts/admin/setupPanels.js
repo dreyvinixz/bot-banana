@@ -93,6 +93,10 @@ async function handleSetupRegrasCommand(message) {
 
 async function handleSetupCargosInfoCommand(interactionOrMessage) {
   const isMessage = !!interactionOrMessage.content;
+  if (!isMessage && !interactionOrMessage.deferred && !interactionOrMessage.replied) {
+    try { await interactionOrMessage.deferReply({ ephemeral: true }); } catch (e) {}
+  }
+  
   const guild = interactionOrMessage.guild;
   let channel = guild.channels.cache.get("1528288022909423797") || guild.channels.cache.find(c => c.name.includes("cargo") || c.name.includes("cargos"));
   if (!channel) channel = interactionOrMessage.channel;

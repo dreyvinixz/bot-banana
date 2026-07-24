@@ -524,6 +524,26 @@ function start(options = {}) {
           return handleSetupCabereCommand(interaction);
         }
 
+        if (commandName === 'setup_familia') {
+          const { handleSetupFamiliaCommand } = require("../features/familia");
+          return handleSetupFamiliaCommand(mockMessage);
+        }
+
+        if (commandName === 'setup_publi') {
+          const { handleSetupPubliCommand } = require("../admin/admin");
+          return handleSetupPubliCommand(mockMessage);
+        }
+
+        if (commandName === 'setup_competicoes') {
+          const { handleSetupCompeticoesCommand } = require("../admin/admin");
+          return handleSetupCompeticoesCommand(mockMessage);
+        }
+
+        if (commandName === 'setup_reviews') {
+          const { handleSetupReviewsCommand } = require("../admin/admin");
+          return handleSetupReviewsCommand(mockMessage);
+        }
+
         if (commandName === 'saldo') {
           const { getCoins, getTopPlayers, formatCoins } = require("../economy/economy");
           const coins = getCoins(interaction.user.id);

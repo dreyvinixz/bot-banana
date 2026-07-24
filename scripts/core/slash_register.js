@@ -35,7 +35,19 @@ const commands = [
     .setDescription("[Admin] Configura o painel informativo da caixa do servidor."),
   new SlashCommandBuilder()
     .setName("setup_cabere")
-    .setDescription("[SuperAdmin] Cria a estrutura completa de canais e categorias do servidor")
+    .setDescription("[SuperAdmin] Cria a estrutura completa de canais e categorias do servidor"),
+  new SlashCommandBuilder()
+    .setName("setup_familia")
+    .setDescription("[Admin] Configura o painel de verificação da Família Caberé."),
+  new SlashCommandBuilder()
+    .setName("setup_publi")
+    .setDescription("[Admin] Configura o painel informativo de publicações e parcerias."),
+  new SlashCommandBuilder()
+    .setName("setup_competicoes")
+    .setDescription("[Admin] Configura o painel informativo de competições."),
+  new SlashCommandBuilder()
+    .setName("setup_reviews")
+    .setDescription("[Admin] Configura as diretrizes de reviews.")
 ];
 
 const rest = new REST({ version: "10" }).setToken(config.DISCORD_TOKEN);

@@ -5,7 +5,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, EmbedBuilder
 const { getCoins, addCoins, removeCoins, formatCoins } = require("../economy/economy");
 const { resolveUserFromMessage, resolveUserFromInteraction } = require("../core/userResolver");
 const { resolveDuel, parsePositiveAmount } = require("./duelRules");
-const { choice } = require("../core/random");
+const { choice, integerBetween } = require("../core/random");
 const { getEquippedWeapon, consumeWeaponDurability, computeDuelWeaponModifier, formatWeaponLabel } = require("../economy/weapons");
 
 const {
@@ -22,6 +22,8 @@ const {
   getTempoParrudoRestante,
   handleRoubarCommand
 } = require("./robbery");
+
+const { hasItem, removeItem } = require("../economy/inventory");
 
 const beijoCooldowns = new Map();
 const activeDuels = new Map();
@@ -41,13 +43,76 @@ function handleBeijarMuroCommand(message) {
 
   beijoCooldowns.set(userId, now + cooldown);
 
-  const gain = Math.floor(Math.random() * 20) + 5;
-  addCoins(userId, gain);
+  const WIN_GIF = "https://tenor.com/view/magic-smile-wink-80s-cartoon-gif-16965463.gif";
+  const LOSS_GIF = "https://tenor.com/view/omg-what-no-way-emoji-shock-gif-24390671.gif";
+
+  let usedRabbitFoot = false;
+  if (hasItem(userId, "pe_coelho") || hasItem(userId, "pe_de_coelho")) {
+    const rabbitItem = hasItem(userId, "pe_coelho") ? "pe_coelho" : "pe_de_coelho";
+    removeItem(userId, rabbitItem, 1);
+    usedRabbitFoot = true;
+  }
+
+  // Se usou Pé de Coelho, ganha direto o Jackpot de 1000
+  if (usedRabbitFoot) {
+    const gain = 1000;
+    addCoins(userId, gain);
+
+    const embed = new EmbedBuilder()
+      .setColor('#FF1493')
+      .setTitle('🐰 BEIJO DA SORTE SUPREMA (PÉ DE COELHO)!')
+      .setDescription(`**${message.author.username}**, seu Pé de Coelho evitou todo o azar do muro e te garantiu o prêmio máximo!`)
+      .addFields({ name: '💰 Prêmio Máximo', value: `**+ ${gain} Nanacoins 🪙**` })
+      .setImage(WIN_GIF)
+      .setFooter({ text: 'A zoeira não tem limites no Caberé.' });
+
+    return message.reply({ embeds: [embed] });
+  }
+
+  const roll = integerBetween(1, 100);
+
+  // 15% de chance de Jackpot (1000 coins)
+  if (roll <= 15) {
+    const gain = 1000;
+    addCoins(userId, gain);
+
+    const embed = new EmbedBuilder()
+      .setColor('#FFD700')
+      .setTitle('🎰 BEIJO DA SORTE SUPREMA!')
+      .setDescription(`**${message.author.username}**, você beijou o muro e achou o TESOURO ESCONDIDO de 1000 moedas no tijolo!`)
+      .addFields({ name: '💰 Prêmio Especial', value: `**+ ${gain} Nanacoins 🪙**` })
+      .setImage(WIN_GIF)
+      .setFooter({ text: 'A zoeira não tem limites no Caberé.' });
+
+    return message.reply({ embeds: [embed] });
+  }
+
+  // 60% de chance de Ganho normal (200 a 700 coins)
+  if (roll <= 75) {
+    const gain = integerBetween(200, 700);
+    addCoins(userId, gain);
+
+    const embed = new EmbedBuilder()
+      .setColor('#FF1493')
+      .setTitle('💋 BEIJO DA SORTE GRANDE!')
+      .setDescription(`**${message.author.username}**, você beijou o muro com paixão e encontrou um tesouro escondido!`)
+      .addFields({ name: '💰 Prêmio', value: `**+ ${gain} Nanacoins 🪙**` })
+      .setImage(WIN_GIF)
+      .setFooter({ text: 'A zoeira não tem limites no Caberé.' });
+
+    return message.reply({ embeds: [embed] });
+  }
+
+  // 25% de chance de Perda (100 a 300 coins)
+  const loss = integerBetween(100, 300);
+  removeCoins(userId, loss);
 
   const embed = new EmbedBuilder()
-    .setColor('#FF1493')
-    .setTitle('🧱 BEIJO NO MURO!')
-    .setDescription(`**${message.author.username}** deu um beijo apaixonado no muro da praça e encontrou **${gain} Nanacoins 🪙** caídos no chão!`)
+    .setColor('#FF0000')
+    .setTitle('💥 O MURO DEU O TROCO!')
+    .setDescription(`**${message.author.username}**, você beijou o muro de mau jeito, bateu a cara e teve que pagar o dentista!`)
+    .addFields({ name: '💸 Prejuízo', value: `**- ${loss} Nanacoins 🪙**` })
+    .setImage(LOSS_GIF)
     .setFooter({ text: 'A zoeira não tem limites no Caberé.' });
 
   return message.reply({ embeds: [embed] });
