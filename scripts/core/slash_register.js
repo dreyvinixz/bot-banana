@@ -64,4 +64,6 @@ async function registerSlashCommands() {
   }
 }
 
-registerSlashCommands();
+if (require.main === module) {
+  registerSlashCommands();
+}

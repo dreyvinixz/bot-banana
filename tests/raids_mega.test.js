@@ -191,6 +191,6 @@ test("MEGA TEST: 10 Atacantes vs 10 Defensores com Itens e Taxas de Guerra", asy
   console.log(`Participantes: 10 Atacantes vs 10 Defensores`);
   console.log(`Itens usados: 5 Ofensivos, 5 Defensivos`);
   console.log(`Total Roubado: ${res.totalStolen} NC`);
-  console.log(`Taxa do Servidor (10%): ${res.taxAmount} NC`);
-  console.log(`Total Distribuído: ${res.distributedTotal} NC`);
+  console.log(`Taxa do Servidor (10%): ${res.taxAmount || res.tax} NC`);
+  console.log(`Total Distribuído: ${res.distributedTotal || res.distributed} NC`);
 });
