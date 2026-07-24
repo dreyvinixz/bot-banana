@@ -2,7 +2,7 @@ node_modules/
 venv/
 stable-diffusion-webui-forge/
 local/
-
+tmp-dive-ai/
 .env
 .DS_Store
 
