@@ -1,0 +1,7 @@
+node_modules/
+venv/
+stable-diffusion-webui-forge/
+.git/
+.agents/
+tests/
+plano_teste_global_bottts.md
