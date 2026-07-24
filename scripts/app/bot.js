@@ -620,6 +620,15 @@ function start(options = {}) {
     }
   });
 
+  if (!config.DISCORD_TOKEN || typeof config.DISCORD_TOKEN !== 'string' || !config.DISCORD_TOKEN.trim()) {
+    console.error("\n=======================================================");
+    console.error("❌ [ERRO DISCLOUD / AMBIENTE] TOKEN NÃO ENCONTRADO!");
+    console.error("=======================================================");
+    console.error("👉 O 'DISCORD_TOKEN' está vazio ou o arquivo .env não foi enviado no .zip.");
+    console.error("👉 Verifique se o .env está na raiz do .zip ou defina a variável na DisCloud.\n");
+    process.exit(1);
+  }
+
   return client.login(config.DISCORD_TOKEN);
 }
 
