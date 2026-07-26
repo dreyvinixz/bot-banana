@@ -8,11 +8,11 @@ const { resolveUserFromMessage } = require("../core/userResolver");
 let xpDb = {};
 
 const PROGRESSION_ROLES = [
-  { level: 100, name: "👑 Lenda da Resenha", id: "1528295131994919056" },
-  { level: 50, name: "🤡 Agente do Caos", id: "1528295133324251168" },
-  { level: 25, name: "💬 Já É de Casa", id: "1528295134347919403" },
-  { level: 10, name: "🪑 Sentou na Resenha", id: "1528295135572656234" },
-  { level: 1, name: "🥚 Chegou Agora", id: "1528295137493516389" }
+  { level: 100, name: "👑 Lenda da Resenha", cleanName: "lenda da resenha", id: "1528295131994919056" },
+  { level: 50, name: "🤡 Agente do Caos", cleanName: "agente do caos", id: "1528295133324251168" },
+  { level: 25, name: "💬 Já É de Casa", cleanName: "já é de casa", id: "1528295134347919403" },
+  { level: 10, name: "🪑 Sentou na Resenha", cleanName: "sentou na resenha", id: "1528295135572656234" },
+  { level: 1, name: "🥚 Chegou Agora", cleanName: "chegou agora", id: "1528295137493516389" }
 ];
 
 const COOLDOWN_MS = 60_000; // 1 minuto de cooldown entre ganhos de XP
@@ -87,25 +87,94 @@ function getEligibleRoleForLevel(level) {
 }
 
 /**
- * Atualiza os cargos de progressão do usuário no servidor Discord se aplicável.
+ * Tenta encontrar um cargo no servidor Discord por ID e, caso falhe, por nome (com ou sem emoji).
  */
-async function syncUserRoles(member, newLevel) {
-  if (!member || !member.roles) return;
+async function resolveRoleInGuild(guild, roleData) {
+  if (!guild || !roleData) return null;
 
-  try {
-    const targetRole = getEligibleRoleForLevel(newLevel);
-    const roleIdsToRemove = PROGRESSION_ROLES.map(r => r.id).filter(id => id !== targetRole.id);
+  // 1. Tentar encontrar na cache da guild pelo ID
+  if (guild.roles?.cache?.has?.(roleData.id)) {
+    return guild.roles.cache.get(roleData.id);
+  }
 
-    // Remove outros cargos de progressão se o usuário os possuir
-    for (const roleId of roleIdsToRemove) {
-      if (member.roles.cache.has(roleId)) {
-        await member.roles.remove(roleId).catch(() => null);
+  // 2. Se a guild tiver método fetch, tentar buscar as roles atualizadas
+  if (typeof guild.roles?.fetch === "function") {
+    const fetchedRoles = await guild.roles.fetch().catch(() => null);
+    if (fetchedRoles) {
+      if (typeof fetchedRoles.get === "function" && fetchedRoles.has(roleData.id)) {
+        return fetchedRoles.get(roleData.id);
+      }
+      
+      // Fallback: Tentar encontrar por nome (com ou sem emoji)
+      const targetClean = (roleData.cleanName || roleData.name).toLowerCase().replace(/[^\w\s]/gi, "").trim();
+      if (typeof fetchedRoles.find === "function") {
+        const match = fetchedRoles.find(r => {
+          const rName = r.name?.toLowerCase() || "";
+          const rClean = rName.replace(/[^\w\s]/gi, "").trim();
+          return rName === roleData.name.toLowerCase() || (targetClean && rClean === targetClean);
+        });
+        if (match) return match;
       }
     }
+  }
 
-    // Adiciona o novo cargo de progressão se ainda não o tiver
-    if (!member.roles.cache.has(targetRole.id)) {
-      await member.roles.add(targetRole.id).catch(() => null);
+  // 3. Fallback na cache se fetch não retornou nada
+  if (guild.roles?.cache) {
+    const targetClean = (roleData.cleanName || roleData.name).toLowerCase().replace(/[^\w\s]/gi, "").trim();
+    if (typeof guild.roles.cache.find === "function") {
+      return guild.roles.cache.find(r => {
+        const rName = r.name?.toLowerCase() || "";
+        const rClean = rName.replace(/[^\w\s]/gi, "").trim();
+        return rName === roleData.name.toLowerCase() || (targetClean && rClean === targetClean);
+      }) || null;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Atualiza os cargos de progressão do usuário no servidor Discord se aplicável.
+ */
+async function syncUserRoles(member, level, guild = null) {
+  const targetGuild = guild || member?.guild;
+  if (!targetGuild) return;
+
+  try {
+    let targetMember = member;
+
+    // Se targetMember não foi passado ou for apenas parcial sem roles
+    const memberId = targetMember?.id || targetMember?.user?.id;
+    if ((!targetMember || !targetMember.roles) && memberId && targetGuild.members?.fetch) {
+      targetMember = await targetGuild.members.fetch(memberId).catch(() => null);
+    }
+
+    if (!targetMember || !targetMember.roles) return;
+
+    const eligibleRoleData = getEligibleRoleForLevel(level);
+
+    // Iterar por todos os cargos de progressão para adicionar o elegível e remover os outros
+    for (const roleData of PROGRESSION_ROLES) {
+      const isTarget = (roleData.level === eligibleRoleData.level);
+      const roleInGuild = await resolveRoleInGuild(targetGuild, roleData);
+
+      if (roleInGuild) {
+        if (!isTarget) {
+          // Remover cargos antigos de progressão se o usuário os possuir
+          if (targetMember.roles.cache.has(roleInGuild.id)) {
+            await targetMember.roles.remove(roleInGuild.id).catch(err => {
+              console.error(`[XP Sync] Erro ao remover cargo ${roleInGuild.name} de ${targetMember.id}:`, err?.message || err);
+            });
+          }
+        } else {
+          // Adicionar o novo cargo de progressão se ainda não o tiver
+          if (!targetMember.roles.cache.has(roleInGuild.id)) {
+            await targetMember.roles.add(roleInGuild.id).catch(err => {
+              console.error(`[XP Sync] Erro ao adicionar cargo ${roleInGuild.name} para ${targetMember.id}:`, err?.message || err);
+            });
+          }
+        }
+      }
     }
   } catch (err) {
     console.error("Erro ao sincronizar cargos de XP:", err);
@@ -249,6 +318,15 @@ async function handleXpCommand(message, text = "") {
 
   const stats = getUserXpStats(targetUser.id);
 
+  if (message.guild) {
+    const targetMember = (targetUser.id === message.author?.id && message.member) 
+      ? message.member 
+      : (message.guild.members?.fetch ? await message.guild.members.fetch(targetUser.id).catch(() => null) : null);
+    if (targetMember) {
+      await syncUserRoles(targetMember, stats.level, message.guild).catch(() => null);
+    }
+  }
+
   const embed = new EmbedBuilder()
     .setColor("#1E90FF")
     .setTitle(`📈 Cartão de XP & Nível | ${targetUser.username}`)
@@ -315,6 +393,7 @@ function __disableXpSavingForTests(val = true) {
 module.exports = {
   addXpFromMessage,
   grantXpToUser,
+  syncUserRoles,
   getUserXpStats,
   handleXpCommand,
   handleRankXpCommand,

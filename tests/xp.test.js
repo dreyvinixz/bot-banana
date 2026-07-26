@@ -90,3 +90,103 @@ test("grantXpToUser envia menção em content ao subir de nível para notificar 
   assert.equal(sentPayload.content, "<@user_levelup>");
   assert.ok(sentPayload.embeds && sentPayload.embeds.length > 0);
 });
+
+test("syncUserRoles atribui cargo correto por ID e por Nome fallback (ex: Nível 10 - Sentou na Resenha)", async () => {
+  const { syncUserRoles } = require("../scripts/features/xp");
+
+  const addedRoleIds = [];
+  const removedRoleIds = [];
+
+  const userRolesCache = new Set(["1528295137493516389"]); // possui o cargo de nível 1
+
+  const mockMember = {
+    id: "user_test_roles",
+    roles: {
+      cache: {
+        has: (id) => userRolesCache.has(id),
+        add: async (id) => { userRolesCache.add(id); }
+      },
+      add: async (id) => {
+        addedRoleIds.push(id);
+        userRolesCache.add(id);
+      },
+      remove: async (id) => {
+        removedRoleIds.push(id);
+        userRolesCache.delete(id);
+      }
+    }
+  };
+
+  const mockGuild = {
+    roles: {
+      cache: {
+        has: (id) => id === "1528295135572656234" || id === "1528295137493516389",
+        get: (id) => {
+          if (id === "1528295135572656234") return { id: "1528295135572656234", name: "🪑 Sentou na Resenha" };
+          if (id === "1528295137493516389") return { id: "1528295137493516389", name: "🥚 Chegou Agora" };
+          return null;
+        },
+        find: (fn) => [
+          { id: "1528295135572656234", name: "🪑 Sentou na Resenha" },
+          { id: "1528295137493516389", name: "🥚 Chegou Agora" }
+        ].find(fn)
+      }
+    }
+  };
+
+  // Executar sincronização para Nível 10
+  await syncUserRoles(mockMember, 10, mockGuild);
+
+  assert.ok(addedRoleIds.includes("1528295135572656234"), "Deveria ter adicionado o cargo Sentou na Resenha");
+  assert.ok(removedRoleIds.includes("1528295137493516389"), "Deveria ter removido o cargo antigo Chegou Agora");
+});
+
+test("syncUserRoles realiza fallback por nome caso o ID do cargo no Discord tenha mudado", async () => {
+  const { syncUserRoles } = require("../scripts/features/xp");
+
+  const addedRoleIds = [];
+
+  const mockMember = {
+    id: "user_name_fallback",
+    roles: {
+      cache: {
+        has: () => false
+      },
+      add: async (id) => {
+        addedRoleIds.push(id);
+      },
+      remove: async () => {}
+    }
+  };
+
+  // Servidor onde o ID mudou para "new_role_id_999", mas o nome é "Sentou na Resenha"
+  const mockGuild = {
+    roles: {
+      cache: {
+        has: () => false,
+        get: () => null,
+        find: (fn) => {
+          const sampleRoles = [
+            { id: "new_role_id_999", name: "Sentou na Resenha" }
+          ];
+          return sampleRoles.find(fn);
+        }
+      },
+      fetch: async () => ({
+        has: () => false,
+        get: () => null,
+        find: (fn) => {
+          const sampleRoles = [
+            { id: "new_role_id_999", name: "Sentou na Resenha" }
+          ];
+          return sampleRoles.find(fn);
+        }
+      })
+    }
+  };
+
+  await syncUserRoles(mockMember, 10, mockGuild);
+
+  assert.ok(addedRoleIds.includes("new_role_id_999"), "Deveria ter encontrado e adicionado o cargo pelo nome fallback");
+});
+
