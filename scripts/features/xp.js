@@ -177,10 +177,12 @@ async function grantXpToUser(userId, member, guild, replyFn) {
         || guild.channels.cache.find(c => c.name?.includes("up-cargos"));
 
       if (upChannel && typeof upChannel.send === "function") {
-        await upChannel.send({ embeds: [embed] }).catch(() => null);
+        await upChannel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(() => null);
       } else if (typeof replyFn === "function") {
-        await replyFn({ embeds: [embed] }).catch(() => null);
+        await replyFn({ content: `<@${userId}>`, embeds: [embed] }).catch(() => null);
       }
+    } else if (typeof replyFn === "function") {
+      await replyFn({ content: `<@${userId}>`, embeds: [embed] }).catch(() => null);
     }
   }
 }

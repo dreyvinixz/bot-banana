@@ -24,13 +24,17 @@ const { addXpFromMessage, grantXpToUser, handleXpCommand, handleRankXpCommand } 
 const { handleMemberJoin, handleWelcomeTestCommand } = require("../features/welcome");
 const { handleMenuCommand, handleMenuInteraction } = require("../features/menuHub");
 const { recordActivityMessage, addVoiceTime } = require("../features/autoRoles");
+const { logInfo, logError, setupGlobalErrorLogging } = require("../core/logger");
+
+setupGlobalErrorLogging();
 
 function createClient() {
   const intents = [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildPresences
   ];
 
   if (config.ENABLE_GUILD_MEMBERS_INTENT) {
@@ -251,13 +255,13 @@ async function handleMessage(message) {
     return handleRoubarCommand(message, getCommandText(message, ["!roubar"]));
   }
 
-  if (isCommand(message, ["!doar"])) {
-    const text = getCommandText(message, ["!doar"]);
+  if (isCommand(message, ["!doar", "!pagar", "!pay", "!transferir", "!pix", "!dar"])) {
+    const text = getCommandText(message, ["!doar", "!pagar", "!pay", "!transferir", "!pix", "!dar"]);
     return handleDoarCommand(message, text);
   }
 
-  if (isCommand(message, ["!trade"])) {
-    return message.reply("Use `!bolsa` para negociar itens e armas.");
+  if (isCommand(message, ["!trade", "!troca", "!trocar"])) {
+    return handleMarketCommand(message);
   }
 
   if (isCommand(message, ["!timeout"])) {
@@ -616,7 +620,14 @@ function start(options = {}) {
       });
 
     } catch (err) {
-      if (err.code !== 10062) console.error("🔥 Erro inesperado no evento interactionCreate:", err);
+      if (err.code !== 10062) {
+        logError("INTERACTION_CREATE", err, {
+          userId: interaction.user?.id,
+          username: interaction.user?.username,
+          customId: interaction.customId,
+          channelId: interaction.channelId
+        });
+      }
     }
   });
 

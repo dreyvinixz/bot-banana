@@ -1,6 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ActivityType, MessageFlags } = require("discord.js");
 const path = require("path");
 const fs = require("fs");
+const { logError } = require("../core/logger");
 
 // Nome/ID do cargo de família
 const FAMILIA_ROLE_NAME = "💖 Família Caberé";
@@ -9,7 +10,28 @@ const FAMILIA_ROLE_NAME = "💖 Família Caberé";
  * Cria ou busca o cargo de Família Caberé no servidor
  */
 async function getOrCreateFamiliaRole(guild) {
-  let role = guild.roles.cache.find(r => r.name.toLowerCase().includes("família caberé") || r.name.toLowerCase().includes("familia cabere"));
+  if (!guild || !guild.roles) return null;
+
+  let role = guild.roles.cache.find(r => 
+    r.name.toLowerCase().includes("família caberé") || 
+    r.name.toLowerCase().includes("familia cabere") ||
+    r.name.toLowerCase().includes("família kabaré") ||
+    r.name.toLowerCase().includes("familia kabare")
+  );
+
+  if (!role && guild.roles.fetch) {
+    try {
+      const fetchedRoles = await guild.roles.fetch().catch(() => null);
+      if (fetchedRoles) {
+        role = fetchedRoles.find(r => 
+          r.name.toLowerCase().includes("família caberé") || 
+          r.name.toLowerCase().includes("familia cabere") ||
+          r.name.toLowerCase().includes("família kabaré") ||
+          r.name.toLowerCase().includes("familia kabare")
+        );
+      }
+    } catch (e) {}
+  }
 
   if (!role) {
     try {
@@ -20,7 +42,7 @@ async function getOrCreateFamiliaRole(guild) {
         hoist: true // Destaca na lista de membros
       });
     } catch (e) {
-      console.error("Erro ao criar cargo Família Caberé:", e);
+      logError("FAMILIA_ROLE_CREATE", e, { guildId: guild.id });
     }
   }
 
@@ -42,7 +64,7 @@ function buildFamiliaEmbed(guild, realInviteUrl, hasBanner = false) {
     .addFields(
       {
         name: "ℹ️ Como se tornar um membro da família?",
-        value: `Para fazer parte da nossa família, basta adicionar o convite oficial do nosso servidor à sua **BIO** do Discord ou ao seu **Status Personalizado**.\n\n**Convites para adicionar na BIO ou Status:**\n\`${displayInvite}\` ou \`${displayCode}\``
+        value: `Para fazer parte da nossa família, basta adicionar o convite oficial do nosso servidor ao seu **Status Personalizado** (o balão de texto do seu status no Discord).\n\n**Convites para adicionar no Status Personalizado:**\n\`${displayInvite}\` ou \`${displayCode}\``
       },
       {
         name: "🎁 Benefícios Exclusivos:",
@@ -56,8 +78,8 @@ function buildFamiliaEmbed(guild, realInviteUrl, hasBanner = false) {
         ].join("\n")
       },
       {
-        name: "💞 Finalização 💞",
-        value: "Se você deseja fazer parte da nossa família e já colocou o convite na sua **BIO** ou **Status**, basta clicar no botão **Verificar** abaixo!"
+        name: "Finalização",
+        value: "Se você deseja fazer parte da nossa família e já colocou o convite no seu **Status Personalizado**, basta clicar no botão **Verificar Status Personalizado** abaixo!"
       }
     )
     .setThumbnail(guildIcon)
@@ -106,7 +128,7 @@ async function handleSetupFamiliaCommand(interactionOrMessage, customLink = "") 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("verify_familia")
-      .setLabel("Verificar Bio / Status")
+      .setLabel("Verificar Status Personalizado")
       .setEmoji("✅")
       .setStyle(ButtonStyle.Success)
   );
@@ -122,20 +144,29 @@ async function handleSetupFamiliaCommand(interactionOrMessage, customLink = "") 
 }
 
 /**
- * Verifica se a presença/status ou a BIO (Sobre mim) do membro contém qualquer link de convite válido do servidor
+ * Verifica se a presença/status do membro contém qualquer link de convite válido do servidor
  */
 async function checkMemberStatusHasInvite(member, client = null, customInviteCode = "") {
   if (!member) return false;
 
-  const validKeywords = ["kabere", "kabaré", "cabere", "caberé", "discord.gg", "discord.com/invite", "discordapp.com/invite"];
+  const validKeywords = ["kabere", "kabaré", "cabere", "caberé", "discord.gg", "discord.com/invite", "discordapp.com/invite", "gnu3dapca"];
   if (customInviteCode) {
     validKeywords.push(customInviteCode.toLowerCase());
   }
 
+  const userId = member.id || member.user?.id;
+  let targetMember = member;
+
+  // Tentar obter o membro atualizado do servidor com presenças ativas
+  if (member.guild && member.guild.members && typeof member.guild.members.fetch === "function" && userId) {
+    const fetched = await member.guild.members.fetch({ user: userId, withPresences: true, force: true }).catch(() => null);
+    if (fetched) targetMember = fetched;
+  }
+
   // Buscar dinamicamente todos os códigos de convites ATIVOS do servidor
-  if (member.guild && member.guild.invites) {
+  if (targetMember.guild && targetMember.guild.invites) {
     try {
-      const guildInvites = await member.guild.invites.fetch().catch(() => null);
+      const guildInvites = await targetMember.guild.invites.fetch().catch(() => null);
       if (guildInvites) {
         guildInvites.forEach(inv => {
           if (inv.code) validKeywords.push(inv.code.toLowerCase());
@@ -147,42 +178,38 @@ async function checkMemberStatusHasInvite(member, client = null, customInviteCod
   }
 
   // 1. Verificar Atividades / Custom Status no Presence
-  const presence = member.presence;
+  const presence = targetMember.presence;
   if (presence && presence.activities) {
     for (const act of presence.activities) {
-      if (act.type === ActivityType.Custom || act.name === "Custom Status") {
-        const statusText = `${act.state || ""} ${act.details || ""}`.toLowerCase();
-        if (validKeywords.some(kw => statusText.includes(kw))) {
-          return true;
-        }
+      const statusText = `${act.state || ""} ${act.details || ""} ${act.name || ""}`.toLowerCase();
+      if (validKeywords.some(kw => kw && statusText.includes(kw))) {
+        return true;
       }
     }
   }
 
-  // 2. Verificar a BIO (Sobre Mim / About Me) do Perfil do Usuário
+  // 2. Fallback de verificação de campos de bio se disponíveis
   try {
-    const user = member.user || member;
+    const user = targetMember.user || targetMember;
     if (user && user.id) {
-      // Tentar buscar o perfil do usuário via endpoint REST (user_profile.bio)
       if (client && client.rest) {
         const rawProfile = await client.rest.get(`/users/${user.id}/profile`).catch(() => null);
         if (rawProfile) {
           const rawBioText = `${rawProfile.user_profile?.bio || rawProfile.user?.bio || rawProfile.bio || ""}`.toLowerCase();
-          if (rawBioText && validKeywords.some(kw => rawBioText.includes(kw))) {
+          if (rawBioText && validKeywords.some(kw => kw && rawBioText.includes(kw))) {
             return true;
           }
         }
       }
 
-      // Fallback para fetch tradicional de usuário
       const fullUser = client ? await client.users.fetch(user.id, { force: true }).catch(() => user) : user;
       const bioText = `${fullUser.bio || fullUser.description || fullUser.aboutMe || user.bio || user.description || ""}`.toLowerCase();
-      if (bioText && validKeywords.some(kw => bioText.includes(kw))) {
+      if (bioText && validKeywords.some(kw => kw && bioText.includes(kw))) {
         return true;
       }
     }
   } catch (e) {
-    // Ignorar falha se o perfil for privado ou a rota for inacessível
+    // Ignorar falha se o perfil for privado
   }
 
   return false;
@@ -219,16 +246,30 @@ async function handleFamiliaButtonInteraction(interaction) {
   const hasInvite = await checkMemberStatusHasInvite(member, interaction.client);
 
   if (hasInvite) {
+    let roleAssigned = false;
+    let roleWarningNote = "";
+
     if (role) {
-      await member.roles.add(role.id).catch(() => null);
+      try {
+        await member.roles.add(role.id);
+        roleAssigned = true;
+      } catch (err) {
+        logError("FAMILIA_ROLE_ASSIGN", err, {
+          userId: member.id,
+          roleId: role.id,
+          roleName: role.name,
+          guildId: guild.id
+        });
+        roleWarningNote = "\n\n⚠️ **Nota aos ADMs:** Seu status foi verificado com sucesso, mas o Discord impediu a atribuição automática do cargo. Mova o cargo do **BotBanana** para **CIMA** do cargo **💖 Família Caberé** nas *Configurações do Servidor -> Cargos* (Hierarquia do Discord).";
+      }
     }
 
     const embedSuccess = new EmbedBuilder()
       .setColor("#00FF00")
       .setTitle("🎉 VERIFICAÇÃO CONCLUÍDA COM SUCESSO!")
-      .setDescription(`Seja muito bem-vindo(a) à **Família Caberé**, <@${member.id}>!`)
+      .setDescription(`Seja muito bem-vindo(a) à **Família Kabaré**, <@${member.id}>!${roleWarningNote}`)
       .addFields(
-        { name: "💖 Cargo Atribuído", value: role ? `<@&${role.id}>` : FAMILIA_ROLE_NAME, inline: true },
+        { name: "💖 Cargo Elegível", value: role ? `<@&${role.id}>` : FAMILIA_ROLE_NAME, inline: true },
         { name: "⚡ Bônus de XP", value: "`+200% XP (3x Total)`", inline: true }
       )
       .setFooter({ text: "Aproveite seus novos benefícios e divirta-se no servidor!" });

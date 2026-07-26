@@ -94,9 +94,9 @@ async function handleSetupRegrasCommand(message) {
 async function handleSetupCargosInfoCommand(interactionOrMessage) {
   const isMessage = !!interactionOrMessage.content;
   if (!isMessage && !interactionOrMessage.deferred && !interactionOrMessage.replied) {
-    try { await interactionOrMessage.deferReply({ ephemeral: true }); } catch (e) {}
+    try { await interactionOrMessage.deferReply({ ephemeral: true }); } catch (e) { }
   }
-  
+
   const guild = interactionOrMessage.guild;
   let channel = guild.channels.cache.get("1528288022909423797") || guild.channels.cache.find(c => c.name.includes("cargo") || c.name.includes("cargos"));
   if (!channel) channel = interactionOrMessage.channel;
@@ -220,9 +220,17 @@ async function handleSetupCargosInfoCommand(interactionOrMessage) {
 async function handleSetupAvisosCommand(interactionOrMessage) {
   const isMessage = !!interactionOrMessage.content;
   const guild = interactionOrMessage.guild;
-  let channel = guild.channels.cache.find(c => c.name.includes("aviso") || c.name.includes("anuncio") || c.name.includes("novidades"));
-  if (!channel) channel = interactionOrMessage.channel;
+  const targetChannelId = "1528288021437354004";
+
+  let channel = guild?.channels?.cache?.get(targetChannelId);
+  if (!channel && guild?.channels?.fetch) {
+    channel = await guild.channels.fetch(targetChannelId).catch(() => null);
+  }
   if (!channel) {
+    channel = guild?.channels?.cache?.find(c => c.name.includes("aviso") || c.name.includes("anuncio") || c.name.includes("novidades")) || interactionOrMessage.channel;
+  }
+
+  if (!channel || typeof channel.send !== "function") {
     const errorMsg = "❌ Canal de avisos não encontrado!";
     return isMessage ? interactionOrMessage.reply(errorMsg) : interactionOrMessage.editReply(errorMsg);
   }
@@ -236,26 +244,38 @@ async function handleSetupAvisosCommand(interactionOrMessage) {
 
     const embedAvisos = new EmbedBuilder()
       .setColor("#8A2BE2")
-      .setTitle("🔮 CENTRAL DE ANÚNCIOS — GRANDES ATUALIZAÇÕES DO BOTBANANA! 🍌")
-      .setDescription("Chegaram super novidades e atualizações gigantes no servidor! Fiquem por dentro de tudo:")
+      .setTitle("🔮 ATUALIZAÇÕES DO BOTBANANA & SORTEIO DE NITRO! 🍌")
+      .setDescription("Chegaram super atualizações no **Kabaré** e um sorteio imperdível rolando agora!")
       .addFields(
-        { name: "🍌 Novo Painel Central (`!menu` / `!hub` / `!painel`)", value: "Acesse todas as funções com 1 clique!" },
-        { name: "🛡️ Proteção Parrudo na `!loja`", value: "Compre sua Proteção Parrudo (1h, 2h, 5h, 10h) direto na `!loja`!" },
-        { name: "🏆 Novos Cargos Automáticos & Anúncios no Chat Principal", value: "Milionário de Taubaté, Ladrão, Campeão da Bagaça e Mão de Vaca!" },
-        { name: "⚡ Níveis, XP e Cargos de Voz (`!xp` / `!nivel`)", value: "Toda mensagem enviada gera XP!" }
+        {
+          name: "🎁 Sorteio de 1x Discord Nitro (Meta: 100 Membros!)",
+          value: "Está rolando um sorteio de **1x Discord Nitro** no canal <#1529584034869678171>!\n⚠️ **Importante:** O sorteio será executado assim que atingirmos a marca de **100 membros** no servidor!\nCorra no canal de sorteios e reaja com **🎉** para participar!"
+        },
+        {
+          name: "⚡ Notificações de Nível Corrigidas",
+          value: "Agora ao subir de nível no chat, o bot faz a menção direta te notificando com alerta no canal <#1529586599099371550>!"
+        },
+        {
+          name: "💖 Verificação da Família Kabaré Aprimorada",
+          value: "A verificação no painel do canal <#1528288031101026405> agora lê seu **Status Personalizado** com precisão em tempo real, concedendo cargo e **+200% de XP**!"
+        },
+        {
+          name: "🍌 Painel Central (`!menu`) & Economia (`!loja`)",
+          value: "Acesse todos os minigames, estatísticas de XP, forja e Proteção Parrudo pelo comando `!menu`!"
+        }
       )
-      .setFooter({ text: "© Caberé — BotBanana • Todos os direitos reservados." })
+      .setFooter({ text: "Kabaré — BotBanana • Fique atento às novidades!" })
       .setTimestamp();
 
     if (files.length > 0) embedAvisos.setImage("attachment://banner_kabare.png");
 
     await channel.send({
-      content: "@here 📢 **ATENÇÃO FAMÍLIA CABERÉ — NOVIDADES E ATUALIZAÇÕES DO BOT!**",
+      content: "||@everyone|| 📢 **ATENÇÃO KABARÉ — NOVIDADES E SORTEIO DE NITRO (META DE 100 MEMBROS)!**",
       embeds: [embedAvisos],
       files: files
     });
 
-    const successMsg = `✅ Anúncio oficial publicado com sucesso no canal <#${channel.id}> com menção @here!`;
+    const successMsg = `✅ Anúncio oficial publicado com sucesso no canal <#${channel.id}> com menção @everyone!`;
     if (isMessage) await interactionOrMessage.reply(successMsg);
     else await interactionOrMessage.editReply(successMsg);
   } catch (error) {
@@ -269,7 +289,7 @@ async function handleSetupAvisosCommand(interactionOrMessage) {
 async function handleSetupPubliCommand(interactionOrMessage) {
   const isMessage = !!interactionOrMessage.content;
   if (!isMessage && !interactionOrMessage.deferred && !interactionOrMessage.replied) {
-    try { await interactionOrMessage.deferReply({ ephemeral: true }); } catch (e) {}
+    try { await interactionOrMessage.deferReply({ ephemeral: true }); } catch (e) { }
   }
 
   const guild = interactionOrMessage.guild;
@@ -468,8 +488,8 @@ async function handleSetupReviewsCommand(interactionOrMessage) {
 async function sendStartupAnnouncement(client) {
   if (!client) return;
   try {
-    let guild = typeof client.guilds?.cache?.first === "function" 
-      ? client.guilds.cache.first() 
+    let guild = typeof client.guilds?.cache?.first === "function"
+      ? client.guilds.cache.first()
       : (Array.isArray(client.guilds?.cache) ? client.guilds.cache[0] : Array.from(client.guilds?.cache?.values?.() || [])[0]);
 
     if (!guild && client.guilds?.fetch) {
@@ -495,7 +515,7 @@ async function sendStartupAnnouncement(client) {
       }
     }
 
-    let channel = channelList.find(c => 
+    let channel = channelList.find(c =>
       c && c.name && (c.name.includes("aviso") || c.name.includes("anuncio") || c.name.includes("novidades"))
     );
 
@@ -530,6 +550,54 @@ async function sendStartupAnnouncement(client) {
   }
 }
 
+async function handleSetupSorteioCommand(interactionOrMessage) {
+  const isMessage = !!interactionOrMessage.content;
+  const guild = interactionOrMessage.guild;
+  const targetChannelId = "1529584034869678171";
+
+  let channel = guild?.channels?.cache?.get(targetChannelId);
+  if (!channel && guild?.channels?.fetch) {
+    channel = await guild.channels.fetch(targetChannelId).catch(() => null);
+  }
+  if (!channel) {
+    channel = guild?.channels?.cache?.find(c => c.name.includes("sortei") || c.name.includes("sorteio")) || interactionOrMessage.channel;
+  }
+
+  if (!channel || typeof channel.send !== "function") {
+    const errorMsg = "❌ Canal de sorteios não encontrado!";
+    return isMessage ? interactionOrMessage.reply(errorMsg) : interactionOrMessage.editReply(errorMsg);
+  }
+
+  try {
+    const guildIcon = guild?.iconURL({ dynamic: true, size: 512 }) || null;
+
+    const embed = new EmbedBuilder()
+      .setColor("#FF73FA")
+      .setTitle("🎁 SORTEIO: 1x DISCORD NITRO 🚀")
+      .setDescription("Reaja com **🎉** abaixo para participar!")
+      .setThumbnail(guildIcon)
+      .setFooter({ text: "Kabaré • Boa sorte!" });
+
+    const sentMsg = await channel.send({
+      content: "@everyone 🎉 **SORTEIO DE DISCORD NITRO!**",
+      embeds: [embed]
+    });
+
+    await sentMsg.react("🎉").catch(() => null);
+
+    const successMsg = `✅ Painel de sorteio do Nitro publicado com sucesso no canal <#${channel.id}> com menção @everyone e reação 🎉!`;
+    if (isMessage) await interactionOrMessage.reply(successMsg);
+    else if (typeof interactionOrMessage.editReply === "function") await interactionOrMessage.editReply(successMsg);
+    return true;
+  } catch (error) {
+    console.error("Erro ao publicar sorteio do Nitro:", error);
+    const errorMsg = "❌ Ocorreu um erro ao publicar o sorteio do Nitro.";
+    if (isMessage) await interactionOrMessage.reply(errorMsg);
+    else if (typeof interactionOrMessage.editReply === "function") await interactionOrMessage.editReply(errorMsg);
+    return false;
+  }
+}
+
 module.exports = {
   getOrFetchRoleTag,
   getFaviconEmoji,
@@ -541,5 +609,6 @@ module.exports = {
   handleSetupCompeticoesCommand,
   handleSetupCaixaInfoCommand,
   handleSetupReviewsCommand,
+  handleSetupSorteioCommand,
   sendStartupAnnouncement
 };

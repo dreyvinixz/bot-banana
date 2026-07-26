@@ -6,6 +6,7 @@ const {
   createProgressBar,
   getEligibleRoleForLevel,
   getUserXpStats,
+  grantXpToUser,
   __setXpDbForTests,
   __disableXpSavingForTests
 } = require("../scripts/features/xp");
@@ -60,4 +61,32 @@ test("getUserXpStats fornece informações de nivel, progresso e ranking", () =>
   const stats2 = getUserXpStats("user2");
   assert.equal(stats2.xp, 1200);
   assert.equal(stats2.rank, 1);
+});
+
+test("grantXpToUser envia menção em content ao subir de nível para notificar o usuário", async () => {
+  __setXpDbForTests({
+    "user_levelup": { xp: 95, level: 1, lastXpTimestamp: 0, messagesCount: 5 }
+  });
+
+  let sentPayload = null;
+  const mockChannel = {
+    send: async (payload) => {
+      sentPayload = payload;
+    }
+  };
+
+  const mockGuild = {
+    channels: {
+      cache: {
+        get: (id) => (id === "1529586599099371550" ? mockChannel : null),
+        find: () => null
+      }
+    }
+  };
+
+  await grantXpToUser("user_levelup", null, mockGuild);
+
+  assert.ok(sentPayload, "Mensagem de level up deveria ter sido enviada");
+  assert.equal(sentPayload.content, "<@user_levelup>");
+  assert.ok(sentPayload.embeds && sentPayload.embeds.length > 0);
 });

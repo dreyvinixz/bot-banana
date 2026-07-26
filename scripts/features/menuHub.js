@@ -67,10 +67,12 @@ async function handleMenuInteraction(interaction) {
   const ownerId = parts.at(-1);
 
   if (interaction.user.id !== ownerId) {
-    await interaction.reply({
-      content: "❌ Este menu foi aberto por outro jogador! Digite `!menu` no chat para abrir o seu.",
-      flags: MessageFlags.Ephemeral
-    });
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: "❌ Este menu foi aberto por outro jogador! Digite `!menu` no chat para abrir o seu.",
+        flags: MessageFlags.Ephemeral
+      }).catch(() => null);
+    }
     return true;
   }
 
@@ -81,6 +83,32 @@ async function handleMenuInteraction(interaction) {
     action = interaction.values[0];
   }
 
+  // Acelerar resposta imediata ao Discord (evita erro "interação não respondeu a tempo")
+  if (typeof interaction.deferUpdate === "function" && !interaction.deferred && !interaction.replied) {
+    await interaction.deferUpdate().catch(() => null);
+  }
+
+  const sendOrUpdate = async (payload) => {
+    const formatted = typeof payload === "string" ? { content: payload } : payload;
+    if (typeof interaction.editReply === "function" && (interaction.deferred || interaction.replied)) {
+      return interaction.editReply(formatted).catch(() => null);
+    }
+    if (typeof interaction.update === "function") {
+      return interaction.update(formatted).catch(() => {
+        if (typeof interaction.editReply === "function") return interaction.editReply(formatted).catch(() => null);
+        if (typeof interaction.reply === "function") return interaction.reply(formatted).catch(() => null);
+        return null;
+      });
+    }
+    if (typeof interaction.editReply === "function") {
+      return interaction.editReply(formatted).catch(() => null);
+    }
+    if (typeof interaction.reply === "function") {
+      return interaction.reply(formatted).catch(() => null);
+    }
+    return null;
+  };
+
   const mockMessage = {
     author: interaction.user,
     user: interaction.user,
@@ -88,85 +116,85 @@ async function handleMenuInteraction(interaction) {
     guild: interaction.guild,
     channel: interaction.channel,
     channelId: interaction.channelId,
-    reply: async (content) => {
-      if (interaction.replied || interaction.deferred) {
-        return interaction.followUp(content);
-      }
-      return interaction.reply(content);
-    },
-    update: async (payload) => interaction.update(payload)
+    reply: sendOrUpdate,
+    update: sendOrUpdate
   };
 
-  if (action === "home") {
-    await handleMenuCommand(mockMessage);
-    return true;
-  }
-
-  if (action === "games") {
-    const { handleGamesCommand } = require("../games/menu");
-    await handleGamesCommand(mockMessage);
-    return true;
-  }
-
-  if (action === "loja") {
-    const { handleBoostCommand } = require("../economy/boosts");
-    await handleBoostCommand(mockMessage);
-    return true;
-  }
-
-  if (action === "inv") {
-    const { handleInventoryCommand } = require("../economy/weapons");
-    await handleInventoryCommand(mockMessage);
-    return true;
-  }
-
-  if (action === "bolsa") {
-    const { handleMarketCommand } = require("../economy/market");
-    await handleMarketCommand(mockMessage);
-    return true;
-  }
-
-  if (action === "reels") {
-    const { handleReelsCommand } = require("../features/reels");
-    await handleReelsCommand(mockMessage);
-    return true;
-  }
-
-  if (action === "saldo") {
-    const coins = getCoins(interaction.user.id);
-    const topPlayers = getTopPlayers(100);
-    const myRank = topPlayers.findIndex(p => p.id === interaction.user.id) + 1;
-    const rankStr = myRank > 0 ? `#${myRank}` : 'Não rankeado';
-
-    const embed = new EmbedBuilder()
-      .setColor('#000000')
-      .setTitle('💳 BANCO NANACOIN')
-      .setDescription(`Extrato bancário de **${interaction.user.username}**`)
-      .addFields(
-        { name: '💵 Saldo Disponível', value: `\`🪙 ${formatCoins(coins)} Nanacoins\``, inline: true },
-        { name: '🏆 Posição no Rank', value: `\`${rankStr}\``, inline: true }
-      )
-      .setFooter({ text: 'Dica: Use a loja para gastar ou roubar para tentar a sorte.' });
-
-    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-    return true;
-  }
-
-  if (action === "xp") {
-    const { handleXpCommand } = require("./xp");
-    await handleXpCommand(mockMessage, "");
-    return true;
-  }
-
-  if (action === "help") {
-    const { buildHelpEmbed } = require("../app/bot");
-    if (typeof buildHelpEmbed === "function") {
-      await interaction.reply({ embeds: [buildHelpEmbed()], flags: MessageFlags.Ephemeral });
+  try {
+    if (action === "home") {
+      await handleMenuCommand(mockMessage);
+      return true;
     }
-    return true;
+
+    if (action === "games") {
+      const { handleGamesCommand } = require("../games/menu");
+      await handleGamesCommand(mockMessage);
+      return true;
+    }
+
+    if (action === "loja") {
+      const { handleBoostCommand } = require("../economy/boosts");
+      await handleBoostCommand(mockMessage);
+      return true;
+    }
+
+    if (action === "inv") {
+      const { handleInventoryCommand } = require("../economy/weapons");
+      await handleInventoryCommand(mockMessage);
+      return true;
+    }
+
+    if (action === "bolsa") {
+      const { handleMarketCommand } = require("../economy/market");
+      await handleMarketCommand(mockMessage);
+      return true;
+    }
+
+    if (action === "reels") {
+      const { handleReelsCommand } = require("../features/reels");
+      await handleReelsCommand(mockMessage);
+      return true;
+    }
+
+    if (action === "saldo") {
+      const coins = getCoins(interaction.user.id);
+      const topPlayers = getTopPlayers(100);
+      const myRank = topPlayers.findIndex(p => p.id === interaction.user.id) + 1;
+      const rankStr = myRank > 0 ? `#${myRank}` : 'Não rankeado';
+
+      const embed = new EmbedBuilder()
+        .setColor('#000000')
+        .setTitle('💳 BANCO NANACOIN')
+        .setDescription(`Extrato bancário de **${interaction.user.username}**`)
+        .addFields(
+          { name: '💵 Saldo Disponível', value: `\`🪙 ${formatCoins(coins)} Nanacoins\``, inline: true },
+          { name: '🏆 Posição no Rank', value: `\`${rankStr}\``, inline: true }
+        )
+        .setFooter({ text: 'Dica: Use a loja para gastar ou roubar para tentar a sorte.' });
+
+      await sendOrUpdate({ content: "", embeds: [embed], components: buildMenuComponents(ownerId) });
+      return true;
+    }
+
+    if (action === "xp") {
+      const { handleXpCommand } = require("./xp");
+      await handleXpCommand(mockMessage, "");
+      return true;
+    }
+
+    if (action === "help") {
+      const { buildHelpEmbed } = require("../app/bot");
+      if (typeof buildHelpEmbed === "function") {
+        await sendOrUpdate({ content: "", embeds: [buildHelpEmbed()], components: buildMenuComponents(ownerId) });
+      }
+      return true;
+    }
+  } catch (err) {
+    console.error(`Erro ao processar acao '${action}' no menuHub:`, err);
+    await sendOrUpdate({ content: "❌ Ocorreu um erro ao carregar esta página do menu." });
   }
 
-  return false;
+  return true;
 }
 
 module.exports = {

@@ -17,6 +17,7 @@ const {
   handleSetupCompeticoesCommand,
   handleSetupCaixaInfoCommand,
   handleSetupReviewsCommand,
+  handleSetupSorteioCommand,
   sendStartupAnnouncement
 } = require("./setupPanels");
 
@@ -53,6 +54,9 @@ async function handleAdminCommand(message) {
   if (command.startsWith("!setup_reviews")) {
     return handleSetupReviewsCommand(message);
   }
+  if (command.startsWith("!setup_sorteio") || command.startsWith("!sorteionitro")) {
+    return handleSetupSorteioCommand(message);
+  }
   if (command.startsWith("!setup_familia")) {
     const { handleSetupFamiliaCommand } = require("../features/familia");
     return handleSetupFamiliaCommand(message);
@@ -72,6 +76,7 @@ module.exports = {
   handleSetupCompeticoesCommand,
   handleSetupCaixaInfoCommand,
   handleSetupReviewsCommand,
+  handleSetupSorteioCommand,
   sendStartupAnnouncement,
   getOrFetchRoleTag,
   getFaviconEmoji
