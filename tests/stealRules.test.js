@@ -28,3 +28,10 @@ test("acid failure blocks normal robbery without thorn shield", () => {
   assert.equal(gate.acidConsumed, true);
   assert.equal(gate.acidFailed, true);
 });
+
+test("getStealChanceExtra in robbery module resolves safely without error", () => {
+  const { getStealChanceExtra } = require("../scripts/games/robbery");
+  const chance = getStealChanceExtra("user123");
+  assert.equal(typeof chance, "number");
+});
+

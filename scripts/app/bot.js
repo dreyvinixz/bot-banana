@@ -24,8 +24,9 @@ const { addXpFromMessage, grantXpToUser, handleXpCommand, handleRankXpCommand } 
 const { handleMemberJoin, handleWelcomeTestCommand } = require("../features/welcome");
 const { handleMenuCommand, handleMenuInteraction } = require("../features/menuHub");
 const { recordActivityMessage, addVoiceTime } = require("../features/autoRoles");
-const { logInfo, logError, setupGlobalErrorLogging } = require("../core/logger");
+const { logInfo, logError, interceptConsole, setupGlobalErrorLogging } = require("../core/logger");
 
+interceptConsole();
 setupGlobalErrorLogging();
 
 function createClient() {

@@ -16,6 +16,8 @@ robbery.__disableRobberySavingForTests(true);
 test("RELEASE VALIDATION 1: Validação de Sintaxe e Import de Todos os Arquivos em scripts/", () => {
   console.log("\n📦 VALIDANDO INTEGRIDADE DOS ARQUIVOS E IMPORTS...");
 
+  const emptyExports = [];
+
   function walkAndCheck(dir) {
     const files = fs.readdirSync(dir);
     for (const file of files) {
@@ -24,14 +26,38 @@ test("RELEASE VALIDATION 1: Validação de Sintaxe e Import de Todos os Arquivos
       if (stat.isDirectory()) {
         walkAndCheck(fullPath);
       } else if (fullPath.endsWith(".js")) {
+        let mod;
         assert.doesNotThrow(() => {
-          require(fullPath);
+          mod = require(fullPath);
         }, `Falha ao carregar o módulo: ${fullPath}`);
+
+        // Verifica que o módulo exporta algo útil (não é objeto vazio sem funções)
+        if (mod && typeof mod === "object" && !Array.isArray(mod)) {
+          const exportedFns = Object.entries(mod).filter(([k, v]) => typeof v === "function" && !k.startsWith("__"));
+          const relativePath = path.relative(path.join(__dirname, ".."), fullPath);
+
+          // Módulos com exports devem ter pelo menos 1 função pública
+          const totalKeys = Object.keys(mod).filter(k => !k.startsWith("__")).length;
+          if (totalKeys > 0 && exportedFns.length === 0) {
+            emptyExports.push(relativePath);
+          }
+
+          // Verifica que nenhum export público é undefined (sinal de desestruturação quebrada)
+          for (const [key, val] of Object.entries(mod)) {
+            if (key.startsWith("__")) continue;
+            assert.notEqual(val, undefined, `${relativePath} exporta '${key}' como undefined — possível import quebrado`);
+          }
+        }
       }
     }
   }
 
   walkAndCheck(path.join(__dirname, "../scripts"));
+
+  if (emptyExports.length > 0) {
+    console.warn(`⚠️ Módulos sem funções públicas exportadas: ${emptyExports.join(", ")}`);
+  }
+
   console.log("✅ Todos os arquivos em scripts/ foram validados e importados sem erros de sintaxe!");
 });
 

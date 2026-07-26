@@ -75,44 +75,31 @@ function evaluateParrudoGate({ targetUserId, hasAcidItem }) {
 }
 
 function getStealChanceExtra(userId) {
-  const { activeEffectsMap } = require("../economy/activeEffects");
-  if (!activeEffectsMap.has(userId)) return 0;
-  const effects = activeEffectsMap.get(userId);
-  const now = Date.now();
-
-  for (const [k, eff] of Object.entries(effects)) {
-    if (eff.category === 'robbery' && eff.type === 'steal_chance' && eff.expire > now) {
-      return eff.val || 0;
-    }
-  }
-  return 0;
+  const { getStealChanceExtra: getBoostStealExtra } = require("../economy/boosts");
+  return getBoostStealExtra(userId);
 }
 
 function computeStealChance({ boostChance = 0, isSuperAdmin = false } = {}) {
-  const base = config.static.app.duel.stealBaseChance;
-  const adminBonus = isSuperAdmin ? config.static.app.duel.stealAdminBonus : 0;
+  const base = config.static.app.duel.baseStealChance;
+  const adminBonus = isSuperAdmin ? config.static.app.duel.superAdminStealBonus : 0;
   return base + boostChance + adminBonus;
 }
 
 function rollStealPercent(hasPeCabra = false) {
   if (hasPeCabra) {
-    const min = config.static.app.duel.stealPercentWithPeCabraMin;
-    const max = config.static.app.duel.stealPercentWithPeCabraMax;
+    const { min, max } = config.static.app.duel.crowbarStealPercent;
     return min + Math.random() * (max - min);
   }
-  const min = config.static.app.duel.stealPercentNormalMin;
-  const max = config.static.app.duel.stealPercentNormalMax;
+  const { min, max } = config.static.app.duel.normalStealPercent;
   return min + Math.random() * (max - min);
 }
 
 function computeThornPenalty(myCoins) {
-  return Math.floor(myCoins * config.static.app.duel.thornPenaltyRatio);
+  return Math.floor(myCoins * config.static.app.duel.thornPenaltyPercent);
 }
 
 function computePrisonMinutes(attempts) {
-  if (attempts >= 3) return config.static.app.duel.prisonMinutesLevel3;
-  if (attempts === 2) return config.static.app.duel.prisonMinutesLevel2;
-  return config.static.app.duel.prisonMinutesLevel1;
+  return config.static.app.duel.jailMinutesOnStealFailure;
 }
 
 async function handleRoubarCommand(message) {
